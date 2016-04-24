@@ -19,35 +19,39 @@ from keys import check_and_create_privkey, get_pubkey, get_pubkey_fingerprint
 #for bucket in s3.buckets.all():
 #        print(bucket.name)
 
-def sync_local_key(new_keyname, aws_client):
+def sync_local_key(keyname, aws_client):
     """
-    Checks whether local RSA priv key exists and gets name
-    of AWS key that corresponds to this. 
+    Checks whether local RSA priv key exists.
     If it does not exist locally, a new key is created. 
     If it does, but does not match with an
     AWS key, overrides AWS key info.
 
     Arguments:-
-        new_keyname- the name to use for a new key
+        keyname- the name of the key 
         aws_client- the AWS Client object
     """
     #Check if local SSH key exists; if not create it
     check_and_create_privkey()
-    #get public key fingerprint
-    fingerprint = get_pubkey_fingerprint()
-    #find corresponding key's name    
-    #NOTE: we could alternatively hardcode AWS keyname
-    keyname = aws_client.get_keyname(fingerprint)
-    #If no match key found on AWS, create a new key
-    if not keyname:
-        #delete key on AWS, with default name
-        if aws_client.check_keyname(new_keyname):
-            aws_client.remove_keypair(new_keyname)
-        #Create new key
-        aws_client.create_keypair(new_keyname, get_pubkey())
-        keyname = new_keyname
+    #compare local key with remote key
+    if aws_client.check_keyname(keyname):
+        #get public key fingerprint
+        fingerprint = get_pubkey_fingerprint()
+        if not aws_client.check_keyfingerprint(fingerprint):
+            #remove key with matching name
+            aws_client.remove_keypair(keyname)
+    
+            #Create key that corresponds with local key
+            aws_client.create_keypair(keyname, get_pubkey())
+    else:
+        aws_client.create_keypair(keyname, get_pubkey())
 
-    return keyname 
+#Image id's for same image vary by location
+#Ubuntu 14.04
+ubuntu = {
+    'us-east-1':'ami-fce3c696', #N. Virginia
+    'us-west-1':'ami-06116566', #N. California
+    'us-west-2':'ami-9abea4fb', #Oregon
+}
 
 class AwsClient(object):
     """
@@ -163,14 +167,6 @@ class AwsClient(object):
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"
 
-    #Image id's for same image vary by location
-    #Ubuntu 14.04
-    ubuntu = {
-        'us-east-1':'ami-fce3c696', #N. Virginia
-        'us-west-1':'ami-06116566', #N. California
-        'us-west-2':'ami-9abea4fb', #Oregon
-    }
-    
     ac = AwsClient()
     #region is set through env var, but explicitly set it again
     region = 'us-east-1'
@@ -180,7 +176,7 @@ if __name__ == "__main__":
     sync_local_key(DEFAULT_KEYNAME, ac)
 
     #Now create a server 
-    ac.create_server(ubuntu[region], "t2.micro", keyname="spandan_key")
+    ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
 
     #List the servers
     ac.list_servers()

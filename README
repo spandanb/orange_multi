@@ -1,0 +1,33 @@
+Basics of how multi-domain orchestration would work.
+
+
+virtualenv
+==========
+This uses virtualenv.
+See tutorial here:
+https://www.digitalocean.com/community/tutorials/common-python-tools-using-virtualenv-installing-with-pip-and-managing-packages
+
+ENVNAME=aws
+virtualenv --system-site-packages $ENVNAME
+
+#activate it
+source $ENVNAME/bin/activate
+
+#deactive it
+deactivate
+
+ansible
+===============
+pip install boto 
+pip install boto3 
+PYTHONPATH=$PYTHONPATH:my/local/lib/python2.7/site-packages/
+
+WORKFLOW
+========
+First read substate.yaml and provision the substrate vms 
+
+Manual Workflow
+===============
+mk_contr_agent.sh
+ansible/docker
+

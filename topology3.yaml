@@ -1,0 +1,16 @@
+
+Resources:
+    - 
+        name: span-ubuntu-docker
+        image: ubuntu 
+        provider: native
+        type: container
+        region: r2
+
+Links:
+    -
+        endpoint1: span-node-savi
+        endpoint2: span-node-aws
+        secure: false
+        bandwidth: 1Gbps 
+

@@ -1,0 +1,52 @@
+
+Resources:
+    -
+        name: span-node-savi
+        image: Ubuntu1404-64
+        flavor: m1.medium
+        provider: savi #[savi | native | aws ]
+        region: CORE
+        tenant: demo1
+        type: virtual-machine #[container | virtual-machine | baremetal]
+        key_name: key_spandan
+
+        #This is executed when VM is booted
+        user_data: |
+                        #!/bin/bash
+
+                        echo "hello world"
+                        touch /home/ubuntu/hello
+
+    -
+        name: span-node-aws
+        #NOTE: image id's are unique for each region
+        image: ami-9abea4fb #Ubuntu 1404
+        flavor: t2.micro
+        provider: aws
+        region: us-west-2
+        tenant:
+        type: virtual-machine #[container | virtual-machine | baremetal]
+        key_name: spandan_key
+
+        #This is executed when VM is booted
+        user_data: |
+                        #!/bin/bash
+
+                        echo "hello world"
+                        touch /home/ubuntu/hello
+
+    - 
+        name: span-ubuntu-docker
+        image: ubuntu 
+        provider: native
+        type: container
+        region: r2
+
+Links:
+    -
+        endpoint1: span-node-savi
+        endpoint2: span-node-aws
+        secure: false
+        bandwidth: 1Gbps  
+        delay :
+

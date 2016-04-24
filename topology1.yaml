@@ -1,0 +1,52 @@
+
+Resources:
+    -
+        name: span-node-savi
+        image: Ubuntu1404-64
+        flavor: m1.medium
+        provider: savi #[savi | native | aws ]
+        region: CORE
+        tenant: demo1
+        type: virtual-machine #[container | virtual-machine | baremetal]
+        key_name: key_spandan
+#        security_group:
+#            rules:
+#                -
+#                    protocol: tcp
+#                    port: 80
+#                    direction: ingress
+#                    remote: 0.0.0.0/0
+#                -
+#                    protocol: tcp
+#                    port_start: 8000
+#                    port_end: 8004
+#                    direction: ingress
+#                    remote: 0.0.0.0/0
+#
+#            #Inline creation
+#            #This name should be unique
+#            name: my_secgroup
+
+        #This is executed when VM is booted
+        user_data: |
+                        #!/bin/bash
+
+                        echo "hello world"
+                        touch /home/ubuntu/hello
+
+    -
+        name: span-node-aws
+        image: ami-9abea4fb #Ubuntu 1404
+        flavor: m1.small
+        provider: aws
+        region: us-east-1
+        tenant:
+        type: virtual-machine #[container | virtual-machine | baremetal]
+        key_name: spandan_key
+
+        #This is executed when VM is booted
+        user_data: |
+                        #!/bin/bash
+
+                        echo "hello world"
+                        touch /home/ubuntu/hello

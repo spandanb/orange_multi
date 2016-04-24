@@ -1,0 +1,20 @@
+#This template specifies what the substrate looks like
+
+Cloud:
+    #Support hardware level virtualization
+    hw_virt_enabled: true
+    #Support operating system level virtualization  
+    os_virt_enabled: true
+    public_clouds:
+        - savi
+        - aws
+    
+    controller_flavor: m1.medium    
+
+    agent_flavor: m1.medium
+    
+    #Number of agents to create    
+    agent_count: 1    
+
+    #Where are the controller and agents located
+    substrate_host: savi

@@ -3,11 +3,9 @@
 Make sure $PYTHONPATH includes: 1)orange, orange/vino
 
 """
-#import imp
-#ServerManager = servers.ServerManager
 from vino.servers import ServerManager
-#from servers import ServerManager
 from docker import docker_api
+from aws import ubuntu, AwsClient, get_server_ips
 
 import yaml
 import sys
@@ -91,8 +89,16 @@ def static_boot():
     server_manager.create_server("span-vm-1", "Ubuntu1404-64", "m1.medium", 
                     key_name="key_spandan", secgroups=["default"])
 
-
     #create a aws node
+    aws = AwsClient()
+    aws.set_region('us-east-1')
+    #delete all existing nodes
+    aws.delete_all()
+    server_ips = get_server_ips(
+        aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname="spandan_key"))
+
+    
+    
 
 if __name__ == "__main__":
     #main()

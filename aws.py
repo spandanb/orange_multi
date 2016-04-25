@@ -7,21 +7,23 @@ http://docs.aws.amazon.com/general/latest/gr/managing-aws-access-keys.html
 Documentation
 https://boto3.readthedocs.org/en/latest/
 http://boto3.readthedocs.org/en/latest/reference/services/ec2.html#EC2.Client.run_instances
+
+Gotcha's:
+Make sure the security group allows SSH connectivity 
 """
 
 import boto3
 import pdb
 import os
 from keys import check_and_create_privkey, get_pubkey, get_pubkey_fingerprint
-
-##S3
-#s3 = boto3.resource('s3')
-#for bucket in s3.buckets.all():
-#        print(bucket.name)
+from vino.utils import SleepFSM
+import paramiko
+from socket import error as socket_error
 
 def sync_local_key(keyname, aws_client):
     """
-    Checks whether local RSA priv key exists.
+    Synchronizes local RSA key with AWS with `keyname`.
+    First, Checks whether local RSA priv key exists.
     If it does not exist locally, a new key is created. 
     If it does, but does not match with an
     AWS key, overrides AWS key info.
@@ -36,7 +38,7 @@ def sync_local_key(keyname, aws_client):
     if aws_client.check_keyname(keyname):
         #get public key fingerprint
         fingerprint = get_pubkey_fingerprint()
-        if not aws_client.check_keyfingerprint(fingerprint):
+        if not aws_client.check_keyfingerprint(keyname, fingerprint):
             #remove key with matching name
             aws_client.remove_keypair(keyname)
     
@@ -45,6 +47,40 @@ def sync_local_key(keyname, aws_client):
     else:
         aws_client.create_keypair(keyname, get_pubkey())
 
+def get_server_ips(aws_client, instance_ids, username="ubuntu"):
+    """
+    blocking method that waits until all server are ready and 
+    are SSHable 
+    """
+    sleep = SleepFSM()
+    sleep.init(max_tries=7)
+    
+    server_ips = []
+
+    running = aws_client.list_running_servers(instance_ids)
+    while len(running) != len(instance_ids):
+        running = aws_client.list_running_servers(instance_ids)
+        sleep()
+       
+    sshClient = paramiko.SSHClient()
+    sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    while len(running):
+        #Need nested for loop since AWS's response is
+        #nested
+        group = running.pop()["Instances"]
+        while len(group):
+            node = group.pop()
+            while True:
+                try:
+                    print "Trying ssh {}@{}".format(username, node['PublicDnsName'])
+                    sshClient.connect(node['PublicDnsName'], username=username)
+                    server_ips.append(node['PublicDnsName'])
+                    break
+                except socket_error:
+                    print "SSH failed...."
+                sleep()
+    return server_ips
+
 #Image id's for same image vary by location
 #Ubuntu 14.04
 ubuntu = {
@@ -52,6 +88,7 @@ ubuntu = {
     'us-west-1':'ami-06116566', #N. California
     'us-west-2':'ami-9abea4fb', #Oregon
 }
+
 
 class AwsClient(object):
     """
@@ -135,6 +172,10 @@ class AwsClient(object):
         resp = self.ec2_client.describe_images()
         return resp 
 
+    def list_security_groups(self):
+        resp = self.ec2_client.describe_security_groups()
+        return resp['SecurityGroups']
+
     def create_server(self, image, flavor, keyname='', user_data=''):
         """
         Creates a server 
@@ -163,6 +204,30 @@ class AwsClient(object):
 #        for instance in instances:
 #            print(instance.id, instance.instance_type)
 
+    def list_running_servers(self, instance_ids):
+        """
+        Returns instances matching instance_ids, where
+        the status is 'running'
+        """
+        resp = self.ec2_client.describe_instances(
+            InstanceIds=instance_ids, 
+            Filters=[
+                {
+                    'Name': 'instance-state-name',
+                    'Values': ['running'],
+                }
+            ]
+        )
+        return resp['Reservations']
+
+    def delete_all(self):
+        """
+        Delete all servers in running or pending state
+        """
+        server_ids = [instance['InstanceId'] for group in self.list_servers() 
+                            for instance in group if instance['State']['Name'] == 'running'
+                                or instance['State']['Name'] == 'pending']
+        self.ec2_client.terminate_instances(InstanceIds=server_ids)
 
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"
@@ -173,10 +238,13 @@ if __name__ == "__main__":
     ac.set_region(region)
 
     #First, let's handle the keys
-    sync_local_key(DEFAULT_KEYNAME, ac)
+    #sync_local_key(DEFAULT_KEYNAME, ac)
 
     #Now create a server 
-    ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
-
+    instance_ids = ac.create_server(ubuntu[region], "t2.nano", keyname=DEFAULT_KEYNAME)
+    
+    print get_server_ips(ac, instance_ids)
     #List the servers
-    ac.list_servers()
+    #ac.list_servers()
+    
+    #ac.list_security_groups()

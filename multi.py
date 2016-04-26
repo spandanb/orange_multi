@@ -6,7 +6,8 @@ Make sure $PYTHONPATH includes: 1)orange, orange/vino
 from vino.servers import ServerManager
 from docker import docker_api
 from aws import ubuntu, AwsClient, get_server_ips
-
+import pdb
+from keys import sync_savi_key, sync_aws_key
 import yaml
 import sys
 import os
@@ -85,19 +86,27 @@ def static_boot():
                                    os.environ["OS_REGION_NAME"],
                                    os.environ["OS_TENANT_NAME"])
 
+    sync_savi_key("span_key", server_manager) 
     #creates a savi node
-    server_manager.create_server("span-vm-1", "Ubuntu1404-64", "m1.medium", 
-                    key_name="key_spandan", secgroups=["default"])
+    server_id = server_manager.create_server("span-vm-1", "Ubuntu1404-64", "m1.medium", 
+                    key_name="span_key", secgroups=["default"])
 
     #create a aws node
     aws = AwsClient()
     aws.set_region('us-east-1')
     #delete all existing nodes
     aws.delete_all()
-    server_ips = get_server_ips(
-        aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname="spandan_key"))
+    sync_aws_key("spandan_key", aws)
+    aws_ids = aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname="spandan_key")
 
+    #IP addr     
+    savi_ip = server_manager.wait_until_sshable(server_id)
+    print "SAVI node is available at {}".format(savi_ip)
     
+    #list of ips
+    aws_ips = get_server_ips(aws, aws_ids)
+    print "AWS node is available at {}".format(aws_ips[0])
+
     
 
 if __name__ == "__main__":

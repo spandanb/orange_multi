@@ -15,37 +15,12 @@ Make sure the security group allows SSH connectivity
 import boto3
 import pdb
 import os
-from keys import check_and_create_privkey, get_pubkey, get_pubkey_fingerprint
+from keys import sync_aws_key 
 from vino.utils import SleepFSM
 import paramiko
 from socket import error as socket_error
+from utils import create_and_raise
 
-def sync_local_key(keyname, aws_client):
-    """
-    Synchronizes local RSA key with AWS with `keyname`.
-    First, Checks whether local RSA priv key exists.
-    If it does not exist locally, a new key is created. 
-    If it does, but does not match with an
-    AWS key, overrides AWS key info.
-
-    Arguments:-
-        keyname- the name of the key 
-        aws_client- the AWS Client object
-    """
-    #Check if local SSH key exists; if not create it
-    check_and_create_privkey()
-    #compare local key with remote key
-    if aws_client.check_keyname(keyname):
-        #get public key fingerprint
-        fingerprint = get_pubkey_fingerprint()
-        if not aws_client.check_keyfingerprint(keyname, fingerprint):
-            #remove key with matching name
-            aws_client.remove_keypair(keyname)
-    
-            #Create key that corresponds with local key
-            aws_client.create_keypair(keyname, get_pubkey())
-    else:
-        aws_client.create_keypair(keyname, get_pubkey())
 
 def get_server_ips(aws_client, instance_ids, username="ubuntu"):
     """
@@ -224,10 +199,11 @@ class AwsClient(object):
         """
         Delete all servers in running or pending state
         """
-        server_ids = [instance['InstanceId'] for group in self.list_servers() 
-                            for instance in group if instance['State']['Name'] == 'running'
-                                or instance['State']['Name'] == 'pending']
-        self.ec2_client.terminate_instances(InstanceIds=server_ids)
+        servers = self.list_servers() 
+        server_ids = [instance['InstanceId'] for group in servers
+                            for instance in group["Instances"] ]
+        if server_ids:
+            self.ec2_client.terminate_instances(InstanceIds=server_ids)
 
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"

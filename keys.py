@@ -88,6 +88,7 @@ def sync_aws_key(keyname, aws_client, clobber=True):
     Arguments:-
         keyname- the name of the key 
         aws_client- the AWS Client object
+        clobber- delete existing key on AWS if name collision
     """
     #Check if local SSH key exists; if not create it
     check_and_create_privkey()
@@ -112,6 +113,10 @@ def sync_savi_key(keyname, server_manager, clobber=False):
     """
     Synchronizes local RSA key with SAVI with `keyname`.
     Similar to sync_aws_key.
+    Arguments:-
+        keyname- the name of the key 
+        server_manager- the AWS Client object
+        clobber- delete existing key on SAVI if name collision
     """
     #Check if local SSH key exists; if not create it
     check_and_create_privkey()

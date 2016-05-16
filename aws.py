@@ -200,8 +200,12 @@ class AwsClient(object):
         Delete all servers in running or pending state
         """
         servers = self.list_servers() 
-        server_ids = [instance['InstanceId'] for group in servers
-                            for instance in group["Instances"] ]
+        server_ids = [ instance['InstanceId'] for group in servers
+                            for instance in group["Instances"] 
+                                if instance['State']['Name'] == 'pending' 
+                                    or instance['State']['Name'] == 'running'
+                                ]
+        print "Deleting {}".format(server_ids)
         if server_ids:
             self.ec2_client.terminate_instances(InstanceIds=server_ids)
 
@@ -217,10 +221,11 @@ if __name__ == "__main__":
     #sync_local_key(DEFAULT_KEYNAME, ac)
 
     #Now create a server 
-    instance_ids = ac.create_server(ubuntu[region], "t2.nano", keyname=DEFAULT_KEYNAME)
-    
-    print get_server_ips(ac, instance_ids)
+    #instance_ids = ac.create_server(ubuntu[region], "t2.nano", keyname=DEFAULT_KEYNAME)
+    #print get_server_ips(ac, instance_ids)
+
     #List the servers
-    #ac.list_servers()
+    #print ac.list_servers()
+    #ac.delete_all()
     
     #ac.list_security_groups()

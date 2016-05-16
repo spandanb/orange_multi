@@ -1,0 +1,95 @@
+---
+- hosts: database 
+  remote_user: ubuntu
+  tasks:
+    - name: update package registry
+      apt: update_cache=yes 
+      become: true  
+
+    - name: install mysql-server
+      apt: name=mysql-server
+      become: true  
+
+    - name: run mysql_install_db
+      command: mysql_install_db
+      become: true  
+
+    - name: copy mysql conf file
+      #This has a changed binding address
+      copy: src=my.cnf dest=/etc/mysql/my.cnf mode=0644 owner=root group=root
+      become: true  
+
+    - name: run mysql
+      service: name=mysql state=started
+
+#    - apt: name=python-pip
+#      become: true  
+#
+#    - apt: name=python-mysqldb
+#      become: true
+#
+#    - pip: name=MySQL-python
+#      become: true  
+#
+#    - name: create wordpress DB
+#      mysql_db: name=wordpress state=present
+#      become: true  
+#
+#    - name: create DB user and grant priviledges
+#      mysql_user: name=wordpress password=12345 priv=wordpress.*:ALL state=present
+#      become: true  
+
+    - name: create DB user and grant priviledge
+      script: setup_wp_user.sh
+
+    - name: restart mysql
+      service: name=mysql state=restarted
+
+- hosts: webserver
+  remote_user: ubuntu
+  tasks:
+    - name: update package registry
+      apt: update_cache=yes 
+      become: true  
+
+    - apt: name=apache2
+      become: true  
+
+    - name: copy apache2 conf
+      copy: src=dir.conf dest=/etc/apache2/mods-available/dir.conf owner=root group=root mode=0644
+      become: true  
+
+    - apt: name=php5 
+      become: true  
+
+    - apt: name=libapache2-mod-php5 
+      become: true  
+
+    - apt: name=php5-mcrypt 
+      become: true  
+
+    - apt: name=php5-mysql
+      become: true  
+
+    - name: get latest wordpress
+      get_url: url=https://wordpress.org/latest.tar.gz dest=/home/ubuntu/latest.tar.gz
+
+    - name: unarchive wordpress
+      #unarchive: copy=no src=/home/ubuntu/latest.tar.gz dest=/home/ubuntu/
+      shell: tar -zxf /home/ubuntu/latest.tar.gz -C /home/ubuntu
+
+    - name: copy wp-config.php
+      copy: src=wp-config.php dest=/home/ubuntu/wordpress/wp-config.php mode=0644 owner=ubuntu group=ubuntu
+      become: true
+
+    - name: insert DB IP in wordpress config file
+      replace: dest=/home/ubuntu/wordpress/wp-config.php regexp='hostname_here' replace={{ db_ip }}
+      become: true
+
+    - name: mv wordpress folder
+      command: rsync -avP /home/ubuntu/wordpress/ /var/www/html/
+      become: true
+   
+    - name: restart apache2
+      service: name=apache2 state=restarted
+      become: true

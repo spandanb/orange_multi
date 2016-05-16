@@ -12,6 +12,7 @@ import yaml
 import sys
 import os
 import base64
+import cPickle as pickle
 
 import aws
 
@@ -19,6 +20,7 @@ import pprint
 import json
 
 from utils import read_yaml
+
 
 def printobj(obj):
     pprint.pprint(obj)
@@ -77,6 +79,39 @@ def main():
 
         #printobj(resc)
 
+def nodes_to_files(aws_ip='', savi_ip='', 
+                    nodes_file='./nodes', 
+                    nodes_pickle_file='./nodes.p',
+                    openvpn_hosts='./openvpn/hosts', 
+                    openvpn_run='./openvpn/openvpn_run.sh',
+                    ):
+
+    """
+    Creates the various inventory and run.sh files
+    """
+    #Write to the nodes file 
+    with open(nodes_file, 'w') as file_desc:
+        file_desc.write("{}\n".format(aws_ip))
+        file_desc.write("{}\n".format(savi_ip))
+
+    with open(nodes_pickle_file, 'wb') as file_desc:
+        pickle.dump({'aws_ip': aws_ip, 'savi_ip': savi_ip}, file_desc)
+
+    #Write to the openvpn hosts (inventory)
+    with open(openvpn_hosts, 'w') as file_desc:
+        file_desc.write("[server]\n")
+        file_desc.write("{} ansible_user=ubuntu \n\n".format(aws_ip))
+        file_desc.write("[client]\n")
+        file_desc.write("{} ansible_user=ubuntu\n".format(savi_ip))
+        
+    #openvpn run file    
+    with open(openvpn_run, 'w') as file_desc:
+        file_desc.write("#!/bin/bash\n")
+        file_desc.write('ansible-playbook -i hosts --extra-vars "server_ip={}" openvpn.yaml'.format(aws_ip))
+    os.chmod(openvpn_run, 0777)
+
+
+
 def static_boot():
     """
     Boots a topology based on a static config
@@ -87,9 +122,13 @@ def static_boot():
                                    os.environ["OS_TENANT_NAME"])
 
     sync_savi_key("span_key", server_manager) 
+    savi_node_name = "span-vm-1"
+
+    server_manager.delete_servers(name=savi_node_name)
     #creates a savi node
-    server_id = server_manager.create_server("span-vm-1", "Ubuntu1404-64", "m1.medium", 
-                    key_name="span_key", secgroups=["default"])
+    print "Booting VM on SAVI..."
+    server_id = server_manager.create_server(savi_node_name, "Ubuntu1404-64", "m1.large", 
+                    key_name="span_key", secgroups=["default", "spandantb"])
 
     #create a aws node
     aws = AwsClient()
@@ -97,6 +136,7 @@ def static_boot():
     #delete all existing nodes
     aws.delete_all()
     sync_aws_key("spandan_key", aws)
+    print "Booting VM on AWS..."
     aws_ids = aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname="spandan_key")
 
     #IP addr     
@@ -107,8 +147,26 @@ def static_boot():
     aws_ips = get_server_ips(aws, aws_ids)
     print "AWS node is available at {}".format(aws_ips[0])
 
+    #Write the node addresses to file
+    nodes_to_files(aws_ip=aws_ips[0], savi_ip=savi_ip)
     
+def clean_up():
+    server_manager = ServerManager(os.environ["OS_USERNAME"],
+                                   os.environ["OS_PASSWORD"],
+                                   os.environ["OS_REGION_NAME"],
+                                   os.environ["OS_TENANT_NAME"])
+
+    savi_node_name = "span-vm-1"
+
+    server_manager.delete_servers(name=savi_node_name)
+
+    aws = AwsClient()
+    aws.set_region('us-east-1')
+    #delete all existing nodes
+    aws.delete_all()
+
 
 if __name__ == "__main__":
     #main()
-    static_boot()
+    #static_boot()
+    clean_up()

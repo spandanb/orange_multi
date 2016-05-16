@@ -1,0 +1,58 @@
+---
+- hosts: all
+  remote_user: ubuntu
+  tasks:
+    - name: add openvpn key
+      shell: wget -O - https://swupdate.openvpn.net/repos/repo-public.gpg|apt-key add -
+      become: true  
+
+    - name: add openvpn trusty (14.04) repo src
+      shell: echo "deb http://swupdate.openvpn.net/apt trusty main" > /etc/apt/sources.list.d/swupdate.openvpn.net.list
+      become: true  
+
+    - name: apt-get update 
+      apt: update_cache=yes 
+      become: true  
+    
+    - name: install git
+      apt: name=git 
+      become: true  
+
+    - name: install openvpn
+      apt: name=openvpn
+      become: true  
+
+    - name: get screenrc
+      get_url: url=https://raw.githubusercontent.com/spandanb/utils/master/.screenrc dest=/home/ubuntu mode=0666
+
+- hosts: server
+  remote_user: ubuntu
+  tasks: 
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/ca.crt dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/dh2048.pem dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/server.crt dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/server.csr dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/server.key dest=/home/ubuntu
+    - copy: src=server.conf dest=/home/ubuntu
+    - copy: src=screen_handler.sh dest=/home/ubuntu
+    - copy: src=server_screen.sh dest=/home/ubuntu mode=0666
+    
+    - name: run openpvn in screen
+      shell: chdir=/home/ubuntu bash server_screen.sh 
+
+- hosts: client 
+  remote_user: ubuntu
+  tasks: 
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/ca.crt dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/client1.crt dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/client1.csr dest=/home/ubuntu
+    - copy: src=easy-rsa/easy-rsa/2.0/keys/client1.key dest=/home/ubuntu
+    - copy: src=client.conf dest=/home/ubuntu
+    - copy: src=screen_handler.sh dest=/home/ubuntu 
+    - copy: src=client_screen.sh dest=/home/ubuntu mode=0666
+
+    - name: add server IP 
+      replace: dest=/home/ubuntu/client.conf  regexp=my-server-1 replace={{server_ip}}
+
+    - name: run openpvn in screen
+      shell: chdir=/home/ubuntu bash client_screen.sh

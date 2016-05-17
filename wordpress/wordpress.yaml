@@ -22,28 +22,15 @@
     - name: run mysql
       service: name=mysql state=started
 
-#    - apt: name=python-pip
-#      become: true  
-#
-#    - apt: name=python-mysqldb
-#      become: true
-#
-#    - pip: name=MySQL-python
-#      become: true  
-#
-#    - name: create wordpress DB
-#      mysql_db: name=wordpress state=present
-#      become: true  
-#
-#    - name: create DB user and grant priviledges
-#      mysql_user: name=wordpress password=12345 priv=wordpress.*:ALL state=present
-#      become: true  
-
     - name: create DB user and grant priviledge
       script: setup_wp_user.sh
 
     - name: restart mysql
       service: name=mysql state=restarted
+
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
 
 - hosts: webserver
   remote_user: ubuntu
@@ -93,3 +80,29 @@
     - name: restart apache2
       service: name=apache2 state=restarted
       become: true
+
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+
+- hosts: firewall 
+  remote_user: ubuntu
+  tasks:
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+
+    - name: config firewall
+      become: true
+      script: config_firewall.sh
+
+- hosts: gateway 
+  remote_user: ubuntu
+  tasks:
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+
+    - name: config gateway 
+      become: true
+      script: config_gw.sh

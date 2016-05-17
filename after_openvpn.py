@@ -12,22 +12,29 @@ def create_worpress_run_file(nodes_pickle_file='./nodes.p',
         nodes = pickle.load(file_desc)
 
     #These are the openvpn files
-    savi_ip = nodes['savi_ip']
-    aws_ip = nodes['aws_ip']
-    savi_vpn_ip = get_tun_ip(savi_ip, 'ubuntu')
-    aws_vpn_ip = get_tun_ip(aws_ip, 'ubuntu') #Unused
+    savi_ips = nodes['savi_ips']
+    aws_ips = nodes['aws_ips']
+
+    for name, ip in savi_ips.items():
+        savi_ips[name] = {'ip': ip, 'tun_ip': get_tun_ip(ip, 'ubuntu')}
+
+    aws_ips['ws'] = {'ip': aws_ips['ws'], get_tun_ip(aws_ips['ws'], 'ubuntu')}
 
     #Write to the wordpress hosts (inventory)
     with open(wordpress_hosts, 'w') as file_desc:
         file_desc.write("[database]\n")
-        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ip))
+        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['db']['ip']))
+        file_desc.write("[gateway]\n")
+        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['gw']['ip']))
+        file_desc.write("[firewall]\n")
+        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['firewall']['ip']))
         file_desc.write("[webserver]\n")
-        file_desc.write("{} ansible_user=ubuntu\n".format(aws_ip))
+        file_desc.write("{} ansible_user=ubuntu\n".format(aws_ips['ws']['ip']))
 
     #wordpress run file    
     with open(wordpress_run, 'w') as file_desc:
         file_desc.write("#!/bin/bash\n")
-        file_desc.write('ansible-playbook -i hosts --extra-vars "db_ip={}" wordpress.yaml'.format(savi_vpn_ip))
+        file_desc.write('ansible-playbook -i hosts --extra-vars "db_ip={};master_tun_ip={}" wordpress.yaml -f 10'.format(savi_ips['db']['ip'], savi_ips['master']['tun_ip']))
     os.chmod(wordpress_run, 0774)
 
 

@@ -6,9 +6,13 @@
       shell: wget -O - https://swupdate.openvpn.net/repos/repo-public.gpg|apt-key add -
       become: true  
 
-    - name: add openvpn trusty (14.04) repo src
-      shell: echo "deb http://swupdate.openvpn.net/apt trusty main" > /etc/apt/sources.list.d/swupdate.openvpn.net.list
+    - name: add openvpn trusty (12.04) repo src
+      shell: echo "deb http://swupdate.openvpn.net/apt precise main" > /etc/apt/sources.list.d/swupdate.openvpn.net.list
       become: true  
+
+#    - name: add openvpn trusty (14.04) repo src
+#      shell: echo "deb http://swupdate.openvpn.net/apt trusty main" > /etc/apt/sources.list.d/swupdate.openvpn.net.list
+#      become: true  
 
     - name: apt-get update 
       apt: update_cache=yes 
@@ -40,13 +44,13 @@
     - name: run openpvn in screen
       shell: chdir=/home/ubuntu bash server_screen.sh 
 
-- hosts: client 
+- hosts: client1 
   remote_user: ubuntu
   tasks: 
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/ca.crt dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/client1.crt dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/client1.csr dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/client1.key dest=/home/ubuntu
+    - copy: src=keys/ca.crt dest=/home/ubuntu
+    - copy: src=keys/client1.crt dest=/home/ubuntu
+    - copy: src=keys/client1.csr dest=/home/ubuntu
+    - copy: src=keys/client1.key dest=/home/ubuntu
     - copy: src=client.conf dest=/home/ubuntu
     - copy: src=screen_handler.sh dest=/home/ubuntu 
     - copy: src=client_screen.sh dest=/home/ubuntu mode=0666
@@ -54,5 +58,81 @@
     - name: add server IP 
       replace: dest=/home/ubuntu/client.conf  regexp=my-server-1 replace={{server_ip}}
 
+    - name: add client crt file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_crt_file_here replace=client1.crt
+
+    - name: add client key file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_key_file_here replace=client1.key
+
     - name: run openpvn in screen
       shell: chdir=/home/ubuntu bash client_screen.sh
+
+- hosts: client2 
+  remote_user: ubuntu
+  tasks: 
+    - copy: src=keys/ca.crt dest=/home/ubuntu
+    - copy: src=keys/client2.crt dest=/home/ubuntu
+    - copy: src=keys/client2.csr dest=/home/ubuntu
+    - copy: src=keys/client2.key dest=/home/ubuntu
+    - copy: src=client.conf dest=/home/ubuntu
+    - copy: src=screen_handler.sh dest=/home/ubuntu 
+    - copy: src=client_screen.sh dest=/home/ubuntu mode=0666
+
+    - name: add server IP 
+      replace: dest=/home/ubuntu/client.conf  regexp=my-server-1 replace={{server_ip}}
+
+    - name: add client crt file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_crt_file_here replace=client2.crt
+
+    - name: add client key file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_key_file_here replace=client2.key
+
+    - name: run openpvn in screen
+      shell: chdir=/home/ubuntu bash client_screen.sh
+
+- hosts: client3 
+  remote_user: ubuntu
+  tasks: 
+    - copy: src=keys/ca.crt dest=/home/ubuntu
+    - copy: src=keys/client3.crt dest=/home/ubuntu
+    - copy: src=keys/client3.csr dest=/home/ubuntu
+    - copy: src=keys/client3.key dest=/home/ubuntu
+    - copy: src=client.conf dest=/home/ubuntu
+    - copy: src=screen_handler.sh dest=/home/ubuntu 
+    - copy: src=client_screen.sh dest=/home/ubuntu mode=0666
+
+    - name: add server IP 
+      replace: dest=/home/ubuntu/client.conf  regexp=my-server-1 replace={{server_ip}}
+
+    - name: add client crt file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_crt_file_here replace=client3.crt
+
+    - name: add client key file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_key_file_here replace=client3.key
+
+    - name: run openpvn in screen
+      shell: chdir=/home/ubuntu bash client_screen.sh
+
+- hosts: client4 
+  remote_user: ubuntu
+  tasks: 
+    - copy: src=keys/ca.crt dest=/home/ubuntu
+    - copy: src=keys/client4.crt dest=/home/ubuntu
+    - copy: src=keys/client4.csr dest=/home/ubuntu
+    - copy: src=keys/client4.key dest=/home/ubuntu
+    - copy: src=client.conf dest=/home/ubuntu
+    - copy: src=screen_handler.sh dest=/home/ubuntu 
+    - copy: src=client_screen.sh dest=/home/ubuntu mode=0666
+
+    - name: add server IP 
+      replace: dest=/home/ubuntu/client.conf  regexp=my-server-1 replace={{server_ip}}
+
+    - name: add client crt file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_crt_file_here replace=client4.crt
+
+    - name: add client key file
+      replace: dest=/home/ubuntu/client.conf  regexp=client_key_file_here replace=client4.key
+
+    - name: run openpvn in screen
+      shell: chdir=/home/ubuntu bash client_screen.sh
+

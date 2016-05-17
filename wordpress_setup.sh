@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#Sets up vino wordpress, across SAVI and AWS
+#Sets up wordpress, across SAVI and AWS
 
 
 source confidential/envvars.sh

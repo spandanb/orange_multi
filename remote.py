@@ -1,4 +1,8 @@
+"""
+Helpers for doing things on remote hosts
+"""
 import paramiko
+
 
 def remote_fetch(ip_addr, username, cmd):
     """

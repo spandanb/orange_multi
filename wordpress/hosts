@@ -1,5 +1,0 @@
-[database]
-10.12.1.20 ansible_user=ubuntu 
-
-[webserver]
-ec2-54-210-196-104.compute-1.amazonaws.com ansible_user=ubuntu

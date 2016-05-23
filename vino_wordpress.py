@@ -22,25 +22,14 @@ def node_name(ntype, prefix="span-vino-"):
     return prefix + ntype
 
 def nodes_to_files(aws_ips, savi_ips, 
-                    nodes_file='./nodes', 
-                    nodes_pickle_file='./nodes.p',
-                    openvpn_hosts='./openvpn/hosts', 
-                    openvpn_run='./openvpn/openvpn_run.sh',
-                    ):
-
+                   nodes_pickle_file='./nodes.p',
+                   openvpn_hosts='./openvpn/hosts', 
+                   openvpn_run='./openvpn/openvpn_run.sh'):
     """
     Creates the various inventory and run.sh files
     """
 
     aws_ip = aws_ips["ws"]
-
-    #Write to the nodes file 
-    with open(nodes_file, 'w') as file_desc:
-        for name, ip in aws_ips.items():
-            file_desc.write("{}:{}\n".format(name, ip))
-        
-        for name, ip in savi_ips.items():
-            file_desc.write("{}:{}\n".format(name, ip))
 
     with open(nodes_pickle_file, 'wb') as file_desc:
         pickle.dump({"savi_ips": savi_ips, "aws_ips": aws_ips}, file_desc)

@@ -2,7 +2,6 @@
 
 #Sets up wordpress, across SAVI and AWS
 
-
 source confidential/envvars.sh
 
 python multi.py

@@ -69,10 +69,10 @@ class AwsClient(object):
     """
     A class for a AWS Client
     """
-    def __init__(self):
-        self.aws_access_key_id = os.environ["AWS_ACCESS_KEY_ID"]
-        self.aws_secret_access_key = os.environ["AWS_SECRET_ACCESS_KEY"]
-        self.set_region(os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
+    def __init__(self, aws_access_key_id="", aws_secret_access_key="", region=""):
+        self.aws_access_key_id     = aws_access_key_id or os.environ["AWS_ACCESS_KEY_ID"]
+        self.aws_secret_access_key = aws_secret_access_key or os.environ["AWS_SECRET_ACCESS_KEY"]
+        self.set_region(region or os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
         
         self.ec2_client = self._get_client('ec2')
 
@@ -179,20 +179,30 @@ class AwsClient(object):
 #        for instance in instances:
 #            print(instance.id, instance.instance_type)
 
-    def list_running_servers(self, instance_ids):
+    def list_running_servers(self, instance_ids=[]):
         """
         Returns instances matching instance_ids, where
         the status is 'running'
         """
-        resp = self.ec2_client.describe_instances(
-            InstanceIds=instance_ids, 
-            Filters=[
-                {
-                    'Name': 'instance-state-name',
-                    'Values': ['running'],
-                }
-            ]
-        )
+        if instance_ids:
+            resp = self.ec2_client.describe_instances(
+                InstanceIds=instance_ids, 
+                Filters=[
+                    {
+                        'Name': 'instance-state-name',
+                        'Values': ['running'],
+                    }
+                ]
+            )
+        else:
+            resp = self.ec2_client.describe_instances(
+                Filters=[
+                    {
+                        'Name': 'instance-state-name',
+                        'Values': ['running'],
+                    }
+                ]
+            )
         return resp['Reservations']
 
     def delete_all(self):

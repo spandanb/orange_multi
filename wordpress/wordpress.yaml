@@ -1,4 +1,22 @@
 ---
+- hosts: master
+  remote_user: ubuntu
+  tasks:
+    - copy: src=~/.ssh/id_rsa dest=/home/ubuntu/.ssh/id_rsa mode=0600
+    - copy: src=~/.ssh/id_rsa.pub dest=/home/ubuntu/.ssh/id_rsa.pub mode=0644
+
+    - shell: screen -X -S stack quit
+      ignore_errors: yes
+
+    - pause: seconds=15
+
+    - shell: cd /home/ubuntu/vino_orc; git stash; git fetch; git checkout no_password;
+
+    - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
+
+    - name: run control stack in screen  
+      shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh
+
 - hosts: database 
   remote_user: ubuntu
   tasks:
@@ -24,9 +42,12 @@
 
     - name: create DB user and grant priviledge
       script: setup_wp_user.sh
+      ignore_errors: true
 
     - name: restart mysql
       service: name=mysql state=restarted
+      become: true
+      ignore_errors: true
 
     - name: contact master
       become: true
@@ -38,6 +59,12 @@
     - name: update package registry
       apt: update_cache=yes 
       become: true  
+
+    - apt: name=openvswitch-switch
+      become: true
+
+    - apt: name=openvswitch-common
+      become: true
 
     - apt: name=apache2
       become: true  
@@ -83,7 +110,7 @@
 
     - name: contact master
       become: true
-      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`/srv/t/80" >> /etc/crontab
 
 - hosts: firewall 
   remote_user: ubuntu
@@ -101,8 +128,9 @@
   tasks:
     - name: contact master
       become: true
-      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`/gw" >> /etc/crontab
 
     - name: config gateway 
       become: true
       script: config_gw.sh
+

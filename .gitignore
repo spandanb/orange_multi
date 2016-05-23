@@ -1,4 +1,15 @@
 *.pyc
 *.retry
 *.swp
-envvars.sh
+confidential/*
+
+nodes
+nodes.p
+
+openvpn/openvpn_run.sh
+openvpn/hosts
+
+wordpress/wordpress_run.sh
+wordpress/hosts
+
+

@@ -155,6 +155,7 @@ class AwsClient(object):
         """
         Creates a server 
         """
+        subnet_id = self.ec2_client.describe_subnets()['Subnets'][0]['SubnetId']
         resp = self.ec2_client.run_instances(
                 ImageId=image,
                 InstanceType=flavor,
@@ -162,6 +163,8 @@ class AwsClient(object):
                 MaxCount=1,
                 KeyName = keyname,
                 UserData = user_data,
+                #TODO: check corretness
+                NetworkInterfaces=[{'SubnetId': subnet_id, 'DeviceIndex':0}]
                 )
 
         return [instance["InstanceId"] for instance in resp["Instances"]]

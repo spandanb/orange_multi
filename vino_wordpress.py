@@ -20,7 +20,7 @@ def node_name(ntype):
     Return node_name, i.e. prefix + `n(ode)type`  
     ntype = [db | ws | gw | master | firewall ]
     """  
-    prefix = os.environ["OS_USERNAME"] "-vino-"  
+    prefix = os.environ["OS_USERNAME"] + "-vino-"  
     return prefix + ntype
 
 def nodes_to_files(aws_ips, savi_ips, 
@@ -56,28 +56,34 @@ def nodes_to_files(aws_ips, savi_ips,
         file_desc.write('ansible-playbook -i hosts --extra-vars "server_ip={}" openvpn.yaml -f 10'.format(aws_ip))
     os.chmod(openvpn_run, 0777)
 
+def get_clients():
+    """
+    Returns clients for AWS and SAVI
+    """
+    server_manager = ServerManager(os.environ["OS_USERNAME"],
+                                   os.environ["OS_PASSWORD"],
+                                   os.environ["OS_REGION_NAME"],
+                                   os.environ["OS_TENANT_NAME"])
+    aws = AwsClient()
+    aws.set_region(os.environ['AWS_DEFAULT_REGION'])
+    return server_manager, aws
+
 def cleanup():
     """
     Delete any old AWS or SAVI servers
     """
     print "Cleaning up..."
-    server_manager = ServerManager(os.environ["OS_USERNAME"],
-                                   os.environ["OS_PASSWORD"],
-                                   os.environ["OS_REGION_NAME"],
-                                   os.environ["OS_TENANT_NAME"])
+    server_manager, aws = get_clients()
+
     #Delete any existing SAVI servers
     server_manager.delete_servers(name=node_name("master"))
     server_manager.delete_servers(name=node_name("gw"))
     server_manager.delete_servers(name=node_name("db"))
     server_manager.delete_servers(name=node_name("firewall"))
     
-    aws = AwsClient()
-    aws.set_region('us-east-1')
-
     #delete all existing nodes
     aws.delete_all()
 
-    return server_manager, aws
 
 
 def vino_wordpress(savi_keyname="", aws_keyname=""):
@@ -88,7 +94,7 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
     SAVI_KEY_NAME=savi_keyname#"span_key"
     AWS_KEY_NAME=aws_keyname#"spandan_key"
 
-    server_manager, aws = cleanup()
+    server_manager, aws = get_clients()
 
     #Sync the key
     sync_savi_key(SAVI_KEY_NAME, server_manager) 

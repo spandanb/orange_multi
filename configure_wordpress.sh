@@ -2,12 +2,7 @@
 
 #Sets up vino wordpress, across SAVI and AWS
 
-source confidential/envvars.sh
-
-echo "Creating nodes..."
-python vino_wordpress.py
-
-sleep 30
+source secret_envvars.sh
 
 echo "Running OpenVPN"
 cd openvpn 

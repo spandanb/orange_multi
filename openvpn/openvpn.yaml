@@ -32,11 +32,11 @@
 - hosts: server
   remote_user: ubuntu
   tasks: 
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/ca.crt dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/dh2048.pem dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/server.crt dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/server.csr dest=/home/ubuntu
-    - copy: src=easy-rsa/easy-rsa/2.0/keys/server.key dest=/home/ubuntu
+    - copy: src=keys/ca.crt dest=/home/ubuntu
+    - copy: src=keys/dh2048.pem dest=/home/ubuntu
+    - copy: src=keys/server.crt dest=/home/ubuntu
+    - copy: src=keys/server.csr dest=/home/ubuntu
+    - copy: src=keys/server.key dest=/home/ubuntu
     - copy: src=server.conf dest=/home/ubuntu
     - copy: src=screen_handler.sh dest=/home/ubuntu
     - copy: src=server_screen.sh dest=/home/ubuntu mode=0666

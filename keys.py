@@ -53,7 +53,8 @@ def get_pubkey(location="~/.ssh/id_rsa.pub", strip_hostname=True):
         pubkey = content_file.read()
     
     if strip_hostname:
-        pubkey = pubkey.split(" ")[0]
+        #TODO: Not sure if this will always be correct
+        pubkey = " ".join(pubkey.split(" ")[:-1])
 
     return pubkey
 
@@ -138,8 +139,8 @@ def sync_savi_key(keyname, server_manager, clobber=False):
                     server_manager.remove_keypair(keyname)
                     server_manager.create_keypair(keyname, get_pubkey())
                 else:
-                    create_and_raise("SshKeyException", 
-                        "local SSH key does not match key with name on SAVI server")
+                    exc_msg = "local SSH key does not match key '{}' on SAVI server".format(keyname)
+                    create_and_raise("SshKeyException", exc_msg) 
     else:
         server_manager.create_keypair(keyname, get_pubkey())
         

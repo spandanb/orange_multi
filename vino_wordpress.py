@@ -85,8 +85,8 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
     Boots all the components for the Vino wordpress example
     """
     #Constants; move to a config file 
-    SAVI_KEY_NAME=savi_key_name#"span_key"
-    AWS_KEY_NAME=aws_key_name#"spandan_key"
+    SAVI_KEY_NAME=savi_keyname#"span_key"
+    AWS_KEY_NAME=aws_keyname#"spandan_key"
 
     server_manager, aws = cleanup()
 

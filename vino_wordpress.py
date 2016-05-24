@@ -15,11 +15,12 @@ import aws
 import pprint
 import json
 
-def node_name(ntype, prefix="vino-"):
+def node_name(ntype):
     """
-    Return node_name, i.e. cat prefix + `n(ode)type`  
+    Return node_name, i.e. prefix + `n(ode)type`  
     ntype = [db | ws | gw | master | firewall ]
-    """
+    """  
+    prefix = os.environ["OS_USERNAME"] "-vino-"  
     return prefix + ntype
 
 def nodes_to_files(aws_ips, savi_ips, 
@@ -140,7 +141,7 @@ def main():
     parser.add_argument('-a', '--aws-keyname', nargs=1, help="specify the AWS keyname")
     parser.add_argument('-s', '--savi-keyname', nargs=1, help="specify the SAVI keyname")
     parser.add_argument('-f', '--template-file', nargs=1, help="specify the template to use")
-    parser.add_argument('-c', '--clean-up', nargs=1, help="Deletes any provisioned VMs")
+    parser.add_argument('-c', '--clean-up', action="store_true", help="Deletes any provisioned VMs")
     
     args = parser.parse_args()
     if args.clean_up:

@@ -13,3 +13,5 @@ wordpress/wordpress_run.sh
 wordpress/hosts
 
 trash/*
+
+secret_envvars.sh

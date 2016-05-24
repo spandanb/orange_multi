@@ -77,7 +77,7 @@ def get_pubkey_fingerprint(hashtype, privkey_path="~/.ssh/id_rsa", pubkey_path="
         
     return hash_to_fingerprint(md5digest)
 
-def sync_aws_key(keyname, aws_client, clobber=True):
+def sync_aws_key(keyname, aws_client, clobber=False):
     """
     Synchronizes local RSA key with AWS with `keyname`.
     First, Checks whether local RSA priv key exists.

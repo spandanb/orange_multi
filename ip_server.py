@@ -4,24 +4,24 @@ import socket
 
 def get_ip(interface="p1"):
     """
-        Get self IP at specified interface
-        """
-        try:
-        intf = sp.check_output(["ifconfig", "tun0"])
+    Get self IP at specified interface
+    """
+    try:
+        intf = sp.check_output(["ifconfig", interface])
         intf = re.search("(?<=inet addr:)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", intf)
         intf_ip = intf.group()
-    return intf_ip
+        return intf_ip
     except sp.CalledProcessError as err:
-    return ""
+        return ""
 
-def run_server()
+def run_server():
     host = '' 
     port = 5000 
     backlog = 2 
     size = 1024 
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     soc.bind((host, port)) 
-    s.listen(backlog) 
+    soc.listen(backlog) 
     while 1: 
         client, address = soc.accept() 
         data = client.recv(size) 

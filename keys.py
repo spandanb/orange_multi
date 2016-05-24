@@ -42,7 +42,7 @@ def check_and_create_privkey(location="~/.ssh/"):
     with open(pubkey_path, 'w') as content_file:
         content_file.write(pubkey.exportKey('OpenSSH'))
 
-def get_pubkey(location="~/.ssh/id_rsa.pub"):
+def get_pubkey(location="~/.ssh/id_rsa.pub", strip_hostname=True):
     """
     Gets the contents of the pubkey
     Arguments:-
@@ -50,7 +50,12 @@ def get_pubkey(location="~/.ssh/id_rsa.pub"):
     """
     location = expanduser(location)
     with open(location, 'r') as content_file:
-        return content_file.read()
+        pubkey = content_file.read()
+    
+    if strip_hostname:
+        pubkey = pubkey.split(" ")[0]
+
+    return pubkey
 
 def get_pubkey_fingerprint(hashtype, privkey_path="~/.ssh/id_rsa", pubkey_path="~/.ssh/id_rsa.pub"):
     """
@@ -101,8 +106,9 @@ def sync_aws_key(keyname, aws_client, clobber=False):
                 #remove key with matching name
                 aws_client.remove_keypair(keyname)
             else:
-                create_and_raise("SshKeyMismatchException", 
-                    "local SSH key does not match key with name on AWS server")
+                #raise exception
+                exc_msg = "local SSH key does not match key '{}' on AWS server".format(keyname)
+                create_and_raise("SshKeyMismatchException", exc_msg)
     
             #Create key that corresponds with local key
             aws_client.create_keypair(keyname, get_pubkey())

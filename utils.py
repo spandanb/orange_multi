@@ -27,7 +27,7 @@ def create_and_raise(exception_name, exception_msg):
     #define __init__ method
     def exception__init__(self, message):
         super(ExceptionClass, self).__init__(message)
-    ExceptionClass.__init__ = exception_init
+    ExceptionClass.__init__ = exception__init__
 
     #Now raise the exception
     raise ExceptionClass(exception_msg)

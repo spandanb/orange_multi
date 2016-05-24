@@ -59,6 +59,7 @@ def cleanup():
     """
     Delete any old AWS or SAVI servers
     """
+    print "Cleaning up..."
     server_manager = ServerManager(os.environ["OS_USERNAME"],
                                    os.environ["OS_PASSWORD"],
                                    os.environ["OS_REGION_NAME"],
@@ -139,8 +140,13 @@ def main():
     parser.add_argument('-a', '--aws-keyname', nargs=1, help="specify the AWS keyname")
     parser.add_argument('-s', '--savi-keyname', nargs=1, help="specify the SAVI keyname")
     parser.add_argument('-f', '--template-file', nargs=1, help="specify the template to use")
+    parser.add_argument('-c', '--clean-up', nargs=1, help="Deletes any provisioned VMs")
     
     args = parser.parse_args()
+    if args.clean_up:
+        cleanup()
+        return
+
     if not args.savi_keyname:
         print "Please Specify a valid SAVI keyname"
         parser.print_help()

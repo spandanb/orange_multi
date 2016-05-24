@@ -123,7 +123,7 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
 
     ######################   AWS #######################
-    sync_aws_key("spandan_key", aws)
+    sync_aws_key(AWS_KEY_NAME, aws)
     print "Booting {} on AWS...".format(node_name("ws"))
     aws_ids = aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname=AWS_KEY_NAME)
 

@@ -12,4 +12,4 @@ openvpn/hosts
 wordpress/wordpress_run.sh
 wordpress/hosts
 
-
+trash/*

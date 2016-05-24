@@ -1,0 +1,73 @@
+
+Nodes:
+    - 
+        name: vino-master
+        image: master-sdi.0.7
+        flavor: m1.small
+        provider: savi 
+        type: virtual-machine #[virtual-machine | container | baremetal]
+        region: CORE
+        tenant: demo1
+        key_name: key_spandan
+    - 
+        name: vino-database
+        image: Ubuntu64-mysql-OVS
+        flavor: m1.small
+        provider: savi 
+        type: virtual-machine
+        region: CORE
+        tenant: demo1
+        key_name: key_spandan
+    - 
+        name: vino-firewall
+        image: snort-image.2
+        flavor: m1.small
+        provider: savi
+        type: virtual-machine
+        region: CORE
+        tenant: demo1
+        key_name: key_spandan
+    - 
+        name: vino-gateway
+        image: Ubuntu64-3-OVS
+        flavor: m1.small
+        provider: savi
+        type: virtual-machine
+        region: CORE
+        tenant: demo1
+        key_name: key_spandan
+    - 
+        name: vino-webserver
+        image: ubuntu 
+        flavor: t2.micro
+        provider: aws 
+        type: virtual-machine
+        region: CORE
+        tenant: demo1
+        key_name: key_spandan
+
+Edges:
+    -
+        endpoint1: vino-database
+        endpoint2: vino-webserver
+        secure: true
+    -
+        endpoint1: vino-database
+        endpoint2: vino-firewall
+        secure: true
+    -
+        endpoint1: vino-database
+        endpoint2: vino-gateway
+        secure: true
+    -
+        endpoint1: vino-firewall
+        endpoint2: vino-webserver
+        secure: true
+    -
+        endpoint1: vino-firewall
+        endpoint2: vino-gateway
+        secure: true
+    -
+        endpoint1: vino-gateway
+        endpoint2: vino-webserver
+        secure: true

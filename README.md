@@ -9,4 +9,4 @@ To deploy the wordpress example over AWS and SAVI, run vino_wordpress.sh
 Dependencies
 ============
 boto3, i.e. pip install boto3
-
+ansible

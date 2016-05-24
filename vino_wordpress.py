@@ -8,13 +8,14 @@ import sys
 import os
 import base64
 import cPickle as pickle
+import argparse
 
 import aws
 
 import pprint
 import json
 
-def node_name(ntype, prefix="span-vino-"):
+def node_name(ntype, prefix="vino-"):
     """
     Return node_name, i.e. cat prefix + `n(ode)type`  
     ntype = [db | ws | gw | master | firewall ]
@@ -77,13 +78,13 @@ def cleanup():
     return server_manager, aws
 
 
-def vino_wordpress():
+def vino_wordpress(savi_keyname="", aws_keyname=""):
     """
     Boots all the components for the Vino wordpress example
     """
     #Constants; move to a config file 
-    SAVI_KEY_NAME="span_key"
-    AWS_KEY_NAME="spandan_key"
+    SAVI_KEY_NAME=savi_key_name#"span_key"
+    AWS_KEY_NAME=aws_key_name#"spandan_key"
 
     server_manager, aws = cleanup()
 
@@ -131,6 +132,29 @@ def vino_wordpress():
     #Write the node addresses to file
     nodes_to_files(aws_ips, server_ips)
 
+def main():
+    "parse args and call vino_wordpress"
+    parser = argparse.ArgumentParser(description='Vino command line interface')
+    
+    parser.add_argument('-a', '--aws-keyname', nargs=1, help="specify the AWS keyname")
+    parser.add_argument('-s', '--savi-keyname', nargs=1, help="specify the SAVI keyname")
+    parser.add_argument('-f', '--template-file', nargs=1, help="specify the template to use")
+    
+    args = parser.parse_args()
+    if not args.savi_keyname:
+        print "Please Specify a valid SAVI keyname"
+        parser.print_help()
+        sys.exit(1)
+    
+    if not args.aws_keyname:
+        print "Please Specify a valid AWS keyname"
+        parser.print_help()
+        sys.exit(1)
+    
+    vino_wordpress(aws_keyname=args.aws_keyname[0], savi_keyname=args.savi_keyname[0])
+
+
 if __name__ == "__main__":
-    vino_wordpress()
+    main()
+    #vino_wordpress()
     #cleanup()

@@ -266,6 +266,7 @@ class AwsClient(object):
                         IpPermissions=[
                             {'IpProtocol':'icmp', 'FromPort':-1, 'ToPort':-1, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'tcp', 'FromPort':22, 'ToPort':22, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
+                            {'IpProtocol':'tcp', 'FromPort':5000, 'ToPort':5000, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'udp', 'FromPort':1194, 'ToPort':1194, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] }
                         ])
         return secgroup_id

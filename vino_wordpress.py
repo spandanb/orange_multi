@@ -166,8 +166,13 @@ def main():
     
     vino_wordpress(aws_keyname=args.aws_keyname[0], savi_keyname=args.savi_keyname[0])
 
+def test_aws():
+    server_manager, aws = get_clients()
+    ec2 = aws.ec2_client
+    pdb.set_trace()
 
 if __name__ == "__main__":
-    main()
+    #main()
     #vino_wordpress()
     #cleanup()
+    test_aws()

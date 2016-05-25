@@ -42,7 +42,7 @@ def check_and_create_privkey(location="~/.ssh/"):
     with open(pubkey_path, 'w') as content_file:
         content_file.write(pubkey.exportKey('OpenSSH'))
 
-def get_pubkey(location="~/.ssh/id_rsa.pub", strip_hostname=True):
+def get_pubkey(location="~/.ssh/id_rsa.pub", strip_hostname=False):
     """
     Gets the contents of the pubkey
     Arguments:-
@@ -131,7 +131,7 @@ def sync_savi_key(keyname, server_manager, clobber=False):
     keys = server_manager.get_keypairs()
     for key in keys:
         if key["keypair"]["name"] == keyname:
-            if key["keypair"]["public_key"] == get_pubkey():
+            if key["keypair"]["public_key"] == get_pubkey(strip_hostname=True):
                 #Nothing to do here
                 return 
             else:

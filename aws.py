@@ -20,6 +20,7 @@ from vino.utils import SleepFSM
 import paramiko
 from socket import error as socket_error
 from utils import create_and_raise
+import sys
 
 
 def get_server_ips(aws_client, instance_ids, username="ubuntu"):
@@ -155,7 +156,12 @@ class AwsClient(object):
         """
         Creates a server 
         """
-        subnet_id = self.ec2_client.describe_subnets()['Subnets'][0]['SubnetId']
+        vpc_id = self.get_vpc_id()
+        resp = self.ec2_client.describe_subnets(Filters=[{'Name':'vpc-id', 'Values':[vpc_id]}])
+        subnet_id = resp['Subnets'][0]['SubnetId']
+        secgroup_id = self.get_secgroup_id()
+        net_ifaces=[{'SubnetId': subnet_id, 'DeviceIndex':0, 'AssociatePublicIpAddress':True, 'Groups':[secgroup_id]}]
+        
         resp = self.ec2_client.run_instances(
                 ImageId=image,
                 InstanceType=flavor,
@@ -163,8 +169,7 @@ class AwsClient(object):
                 MaxCount=1,
                 KeyName = keyname,
                 UserData = user_data,
-                #TODO: check corretness
-                NetworkInterfaces=[{'SubnetId': subnet_id, 'DeviceIndex':0}]
+                NetworkInterfaces=net_ifaces,
                 )
 
         return [instance["InstanceId"] for instance in resp["Instances"]]
@@ -222,6 +227,56 @@ class AwsClient(object):
         if server_ids:
             self.ec2_client.terminate_instances(InstanceIds=server_ids)
 
+    def get_vpc_id(self):
+        """
+        Returns VpcId of first VPC, if none
+        exist, creates one.
+        """
+        resp = self.ec2_client.describe_vpcs() 
+        if not resp['Vpcs']:
+            #create a VPC
+            resp = self.ec2_client.create_vpc(CidrBlock='10.0.0.0/28')
+            return resp['Vpc']['VpcId']
+        else:
+            return resp['Vpcs'][0]['VpcId']
+
+    def get_secgroup_id(self):
+        """
+        Returns wordpress secgroup Id, 
+        If does not exist; creates wordpress secgroup and adds rules
+        and returns id
+        """
+        group_name = 'wordpress'
+        #check if group exists
+        resp = self.ec2_client.describe_security_groups(Filters=[{'Name':'group-name', 'Values': [group_name]}])
+        
+        if len(resp['SecurityGroups']) > 0: 
+            secgroup_id = resp['SecurityGroups'][0]['GroupId'] 
+        else:
+            #create the Secgroup
+            vpc_id = self.get_vpc_id()
+            resp = self.ec2_client.create_security_group(GroupName=group_name, 
+                                                         Description='wordpress sec group', 
+                                                         VpcId=vpc_id)
+    
+            #Add the rules
+            secgroup_id = resp['GroupId']
+            self.ec2_client.authorize_security_group_ingress(
+                        GroupId=group_id, 
+                        IpPermissions=[
+                            {'IpProtocol':'icmp', 'FromPort':-1, 'ToPort':-1, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
+                            {'IpProtocol':'tcp', 'FromPort':22, 'ToPort':22, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
+                            {'IpProtocol':'udp', 'FromPort':1194, 'ToPort':1194, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] }
+                        ])
+        return secgroup_id
+
+    def delete_secgroup(self, secgroup_id):
+        """
+        Removes the specified secgroup
+        """
+        self.ec2_client.delete_security_group(GroupId=secgroup_id)
+        
+
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"
 
@@ -229,16 +284,22 @@ if __name__ == "__main__":
     #region is set through env var, but explicitly set it again
     region = 'us-east-1'
     ac.set_region(region)
+    
+    #List the servers
+    #print "Listing servers...."
+    #print ac.list_servers()
 
     #First, let's handle the keys
-    #sync_local_key(DEFAULT_KEYNAME, ac)
-
-    #Now create a server 
-    #instance_ids = ac.create_server(ubuntu[region], "t2.nano", keyname=DEFAULT_KEYNAME)
-    #print get_server_ips(ac, instance_ids)
-
-    #List the servers
-    #print ac.list_servers()
+    sync_aws_key(DEFAULT_KEYNAME, ac, clobber=True)
     #ac.delete_all()
+
+    print ac.get_secgroup_id()
+    #ac.delete_secgroup()
+    
+    #Now create a server 
+    instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
+    print "getting server IPs..."
+    print get_server_ips(ac, instance_ids)
+
     
     #ac.list_security_groups()

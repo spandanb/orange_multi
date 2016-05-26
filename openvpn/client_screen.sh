@@ -13,4 +13,7 @@ sleep 5
 #start openvpn client 
 screen_it $SESSION openvpn "sudo openvpn client.conf"
 
+sleep 5
+
+#start get IP server
 screen_it $SESSION getip "python ip_server.py" 

@@ -48,9 +48,9 @@ def get_server_ips(aws_client, instance_ids, username="ubuntu"):
             node = group.pop()
             while True:
                 try:
-                    print "Trying ssh {}@{}".format(username, node['PublicDnsName'])
-                    sshClient.connect(node['PublicDnsName'], username=username)
-                    server_ips.append(node['PublicDnsName'])
+                    print "Trying ssh {}@{}".format(username, node['PublicIpAddress']) #PublicDnsName
+                    sshClient.connect(node['PublicIpAddress'], username=username)
+                    server_ips.append(node['PublicIpAddress'])
                     break
                 except socket_error:
                     print "SSH failed...."

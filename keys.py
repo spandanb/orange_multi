@@ -53,8 +53,7 @@ def get_pubkey(location="~/.ssh/id_rsa.pub", strip_hostname=False):
         pubkey = content_file.read()
     
     if strip_hostname:
-        #TODO: Not sure if this will always be correct
-        pubkey = " ".join(pubkey.split(" ")[:-1])
+        pubkey = " ".join(pubkey.split(" ")[:2])
 
     return pubkey
 

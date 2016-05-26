@@ -7,7 +7,7 @@ mode tcp
 clitimeout 180000
 srvtimeout 180000
 contimeout 4000
-server wp1 wp_ip:80
+server wp1 wp:80
 
 global
 daemon
@@ -24,4 +24,4 @@ sleep 3
 done
 EOF
 chmod +x /home/ubuntu/run_haproxy.sh
-#/home/ubuntu/run_haproxy.sh > /dev/null 2>&1 &
+/home/ubuntu/run_haproxy.sh > /dev/null 2>&1 &

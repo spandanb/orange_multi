@@ -4,17 +4,23 @@
 
 source secret_envvars.sh
 
-echo "Running OpenVPN"
-cd openvpn 
-./openvpn_run.sh
+python vino_wordpress.py -c
+sleep 10
 
-sleep 30
+python vino_wordpress2.py -a span_key -s spandan_key
+sleep 10
 
-echo "Running afterOpenVPN"
-cd ..
-python after_openvpn.py
-
-sleep 30
+#echo "Running OpenVPN"
+#cd openvpn 
+#./openvpn_run.sh
+#
+#sleep 15
+#
+#echo "Running afterOpenVPN"
+#cd ..
+#python after_openvpn.py
+#
+#sleep 15
 
 echo "Running WordPress config"
 cd wordpress

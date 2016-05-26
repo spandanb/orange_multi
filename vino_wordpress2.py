@@ -23,40 +23,7 @@ def node_name(ntype):
     prefix = os.environ["OS_USERNAME"] + "-vino-"  
     return prefix + ntype
 
-def nodes_to_files(aws_ips, savi_ips, 
-                   nodes_pickle_file='./nodes.p',
-                   openvpn_hosts='./openvpn/hosts', 
-                   openvpn_run='./openvpn/openvpn_run.sh'):
-    """
-    Creates the various inventory and run.sh files
-    """
-
-    aws_ip = aws_ips["ws"]
-
-    with open(nodes_pickle_file, 'wb') as file_desc:
-        pickle.dump({"savi_ips": savi_ips, "aws_ips": aws_ips}, file_desc)
-
-    #Write to the openvpn hosts (inventory)
-    with open(openvpn_hosts, 'w') as file_desc:
-        file_desc.write("[server]\n")
-        file_desc.write("{} ansible_user=ubuntu \n\n".format(aws_ip))
-
-        file_desc.write("[client1]\n")
-        file_desc.write("{} ansible_user=ubuntu \n".format(savi_ips["master"]))
-        file_desc.write("[client2]\n")
-        file_desc.write("{} ansible_user=ubuntu \n".format(savi_ips["db"]))
-        file_desc.write("[client3]\n")
-        file_desc.write("{} ansible_user=ubuntu \n".format(savi_ips["gw"]))
-        file_desc.write("[client4]\n")
-        file_desc.write("{} ansible_user=ubuntu \n".format(savi_ips["firewall"]))
-        
-    #openvpn run file    
-    with open(openvpn_run, 'w') as file_desc:
-        file_desc.write("#!/bin/bash\n")
-        file_desc.write('ansible-playbook -i hosts --extra-vars "server_ip={}" openvpn.yaml -f 10'.format(aws_ip))
-    os.chmod(openvpn_run, 0777)
-
-def node_to_files2(savi_ips, aws_ips,
+def node_to_files(savi_ips, aws_ips,
                              nodes_human_file='./nodes',
                              wordpress_hosts='./wordpress/hosts', 
                              wordpress_run='./wordpress/wordpress_run.sh'):
@@ -65,9 +32,6 @@ def node_to_files2(savi_ips, aws_ips,
 
     #Write to the human-readable nodes file 
     with open(nodes_human_file, 'w') as file_desc:
-        for name, ip in aws_ips.items():
-            file_desc.write("{} : {}\n".format(name, ip))
-        
         for name, ip in savi_ips.items():
             file_desc.write("{} : {}\n".format(name, ip))
 
@@ -82,7 +46,7 @@ def node_to_files2(savi_ips, aws_ips,
         file_desc.write("[firewall]\n")
         file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['firewall']))
         file_desc.write("[webserver]\n")
-        file_desc.write("{} ansible_user=ubuntu\n".format(aws_ips['ws']))
+        file_desc.write("{} ansible_user=ubuntu\n".format(savi_ips['ws']))
 
     #wordpress run file    
     with open(wordpress_run, 'w') as file_desc:
@@ -122,7 +86,6 @@ def cleanup():
     aws.delete_all()
 
 
-
 def vino_wordpress(savi_keyname="", aws_keyname=""):
     """
     Boots all the components for the Vino wordpress example
@@ -131,8 +94,8 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
     SAVI_KEY_NAME=savi_keyname
     AWS_KEY_NAME=aws_keyname
 
-    #SAVI_KEY_NAME="span_key"
-    #AWS_KEY_NAME="spandan_key"
+    SAVI_KEY_NAME="span_key"
+    AWS_KEY_NAME="spandan_key"
 
     server_manager, aws = get_clients()
 
@@ -162,91 +125,17 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
     server_ids["db"] = (server_manager.create_server(node_name("db"), "Ubuntu64-mysql-OVS", "m1.small", 
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
 
-    ######################   AWS #######################
-    sync_aws_key(AWS_KEY_NAME, aws)
-    print "Booting {} on AWS...".format(node_name("ws"))
-    aws_ids = aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname=AWS_KEY_NAME)
-
-    server_manager.wait_until_sshable(server_ids["master"])
-    server_manager.wait_until_sshable(server_ids["gw"])
-    server_manager.wait_until_sshable(server_ids["firewall"])
-    server_manager.wait_until_sshable(server_ids["db"])
-
-    #Get IP addr     
-    server_ips["master"] = server_manager.assign_floating_ip(server_ids['master'])
-    server_ips["gw"] = server_manager.assign_floating_ip(server_ids['gw'])
-    server_ips["firewall"] = server_manager.assign_floating_ip(server_ids['firewall'])
-    server_ips["db"] = server_manager.assign_floating_ip(server_ids['db'])
-
-    #list of ips
-    aws_ips = {"ws": get_server_ips(aws, aws_ids)[0]}
-    #server_ips["ws"] = aws_ips[0]
-
-    #Write the node addresses to file
-    node_to_files2(aws_ips, server_ips)
-
-
-def vino_wordpress2(savi_keyname="", aws_keyname=""):
-    """
-    Boots all the components for the Vino wordpress example
-    """
-    #Constants; move to a config file 
-    SAVI_KEY_NAME=savi_keyname
-    AWS_KEY_NAME=aws_keyname
-
-    #SAVI_KEY_NAME="span_key"
-    #AWS_KEY_NAME="spandan_key"
-
-    server_manager, aws = get_clients()
-
-    #Sync the key
-    sync_savi_key(SAVI_KEY_NAME, server_manager) 
-    server_ids = {}
-    server_ips = {}
-
-    ######################   SAVI #######################
-    #creates master node on SAVI
-    print "Booting {} on SAVI...".format(node_name("master"))
-    server_ids["master"] = (server_manager.create_server(node_name("master"), "master-sdi.0.7", "m1.small", 
+    print "Booting {} on SAVI...".format(node_name("webserver"))
+    server_ids["ws"] = (server_manager.create_server(node_name("db"), "Ubuntu1404-64", "m1.small", 
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
 
-    #creates gw node on SAVI
-    print "Booting {} on SAVI...".format(node_name("gw"))
-    server_ids["gw"] = (server_manager.create_server(node_name("gw"), "Ubuntu64-3-OVS", "m1.small", 
-                    key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
+    server_ips["master"] = server_manager.wait_until_sshable(server_ids["master"])
+    server_ips["gw"] = server_manager.wait_until_sshable(server_ids["gw"])
+    server_ips["firewall"] = server_manager.wait_until_sshable(server_ids["firewall"])
+    server_ips["db"] = server_manager.wait_until_sshable(server_ids["db"])
+    server_ips["ws"] = server_manager.wait_until_sshable(server_ids["ws"])
 
-    #creates firewall node on SAVI
-    print "Booting {} on SAVI...".format(node_name("firewall"))
-    server_ids["firewall"] = (server_manager.create_server(node_name("firewall"), "snort-image.2", "m1.small", 
-                    key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
-    
-    #creates db node on SAVI
-    print "Booting {} on SAVI...".format(node_name("db"))
-    server_ids["db"] = (server_manager.create_server(node_name("db"), "Ubuntu64-mysql-OVS", "m1.small", 
-                    key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
-
-    ######################   AWS #######################
-    sync_aws_key(AWS_KEY_NAME, aws)
-    print "Booting {} on AWS...".format(node_name("ws"))
-    aws_ids = aws.create_server(ubuntu['us-east-1'], "t2.micro", keyname=AWS_KEY_NAME)
-
-    server_manager.wait_until_sshable(server_ids["master"])
-    server_manager.wait_until_sshable(server_ids["gw"])
-    server_manager.wait_until_sshable(server_ids["firewall"])
-    server_manager.wait_until_sshable(server_ids["db"])
-
-    #Get IP addr     
-    server_ips["master"] = server_manager.assign_floating_ip(server_ids['master'])
-    server_ips["gw"] = server_manager.assign_floating_ip(server_ids['gw'])
-    server_ips["firewall"] = server_manager.assign_floating_ip(server_ids['firewall'])
-    server_ips["db"] = server_manager.assign_floating_ip(server_ids['db'])
-
-    #list of ips
-    aws_ips = {"ws": get_server_ips(aws, aws_ids)[0]}
-    #server_ips["ws"] = aws_ips[0]
-
-    #Write the node addresses to file
-    node_to_files2(aws_ips, server_ips)
+    node_to_files(aws_ips, server_ips)
 
 def main():
     "parse args and call vino_wordpress"
@@ -280,7 +169,7 @@ def test_aws():
     pdb.set_trace()
 
 if __name__ == "__main__":
-    main()
-    #vino_wordpress()
+    #main()
+    vino_wordpress()
     #cleanup()
     #test_aws()

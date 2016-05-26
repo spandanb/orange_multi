@@ -10,8 +10,6 @@
 
     - pause: seconds=15
 
-    - shell: cd /home/ubuntu/vino_orc; git stash; git fetch; git checkout no_password;
-
     - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
 
     - name: run control stack in screen  
@@ -51,7 +49,7 @@
 
     - name: contact master
       become: true
-      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`" >> /etc/crontab
 
 - hosts: webserver
   remote_user: ubuntu
@@ -110,14 +108,14 @@
 
     - name: contact master
       become: true
-      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`/srv/t/80" >> /etc/crontab
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`/srv/t/80" >> /etc/crontab
 
 - hosts: firewall 
   remote_user: ubuntu
   tasks:
     - name: contact master
       become: true
-      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`" >> /etc/crontab
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`" >> /etc/crontab
 
     - name: config firewall
       become: true
@@ -128,9 +126,14 @@
   tasks:
     - name: contact master
       become: true
-      shell: echo "* *    * * * root curl -X POST --interface tun0 http://{{ master_tun_ip }}:5000/add/`hostname`/gw" >> /etc/crontab
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`/gw" >> /etc/crontab
+
+    - name: insert wordpress IP 
+      lineinfile: dest=/etc/hosts line="{{ webserver_ip }} wp"
+      become: true 
 
     - name: config gateway 
       become: true
       script: config_gw.sh
+    
 

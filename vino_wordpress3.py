@@ -126,6 +126,8 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
 
     server_manager.wait_until_sshable(server_ids["master"])
     server_manager.wait_until_sshable(server_ids["fw"])
+    
+    print "Requesting Floating IPs..."
     server_ips["master"] = server_manager.assign_floating_ip(server_ids["master"])
     server_ips["fw"] = server_manager.assign_floating_ip(server_ids["fw"])
     #TODO: setup wordpress secgroup

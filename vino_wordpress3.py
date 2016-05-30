@@ -27,7 +27,7 @@ def node_name(ntype):
 def node_to_files(savi_ips,
                              nodes_human_file='./nodes',
                              wordpress_hosts='./wordpress/hosts', 
-                             wordpress_run='./wordpress/run.sh'):
+                             wordpress_run='./wordpress/configure_wordpress.sh'):
     """
     """
 
@@ -100,6 +100,8 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
 
     #Sync the key
     sync_savi_key(SAVI_KEY_NAME, server_manager) 
+    sync_aws_key(AWS_KEY_NAME, aws)
+
     server_ids = {}
     server_ips = {}
 
@@ -130,6 +132,11 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
     server_ips["gw"], server_ips["ws"] = get_server_ips(aws, server_ids['gw'] + server_ids['ws']) 
 
     node_to_files(server_ips)
+
+    print "Master is available at: {}".format(server_ips["master"])
+    print "Firewall is available at: {}".format(server_ips["fw"])
+    print "Gateway is available at: {}".format(server_ips["gw"])
+    print "Web server is available at: {}".format(server_ips["ws"])
 
 def main():
     "parse args and call vino_wordpress"

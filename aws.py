@@ -246,7 +246,7 @@ class AwsClient(object):
         If does not exist; creates wordpress secgroup and adds rules
         and returns id
         """
-        group_name = 'wordpress'
+        group_name = 'wordpress1'
         #check if group exists
         resp = self.ec2_client.describe_security_groups(Filters=[{'Name':'group-name', 'Values': [group_name]}])
         
@@ -262,10 +262,11 @@ class AwsClient(object):
             #Add the rules
             secgroup_id = resp['GroupId']
             self.ec2_client.authorize_security_group_ingress(
-                        GroupId=group_id, 
+                        GroupId=secgroup_id, 
                         IpPermissions=[
                             {'IpProtocol':'icmp', 'FromPort':-1, 'ToPort':-1, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'tcp', 'FromPort':22, 'ToPort':22, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
+                            {'IpProtocol':'tcp', 'FromPort':80, 'ToPort':80, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'tcp', 'FromPort':5000, 'ToPort':5000, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'udp', 'FromPort':1194, 'ToPort':1194, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] }
                         ])
@@ -291,16 +292,15 @@ if __name__ == "__main__":
     #print ac.list_servers()
 
     #First, let's handle the keys
-    sync_aws_key(DEFAULT_KEYNAME, ac)
+    #sync_aws_key(DEFAULT_KEYNAME, ac)
     ac.delete_all()
 
-    #print ac.get_secgroup_id()
-    #ac.delete_secgroup()
+    #secgroup_id = ac.get_secgroup_id()
+    #ac.delete_secgroup(secgroup_id)
     
     #Now create a server 
     #instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
     #print "getting server IPs..."
     #print get_server_ips(ac, instance_ids)
 
-    
-    #ac.list_security_groups()
+    #print ac.list_security_groups()

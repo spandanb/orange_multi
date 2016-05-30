@@ -11,4 +11,4 @@ stuff "cd /opt/stack/ryu && /opt/stack/ryu/bin/ryu-manager --flagfile /etc/ryu/r
 screen -t janus bash
 stuff "sleep 10;cd /opt/stack/janus && /opt/stack/janus/bin/janus-init --config-file /etc/janus/janus.conf"
 screen -t vino bash
-stuff "cd /home/ubuntu/vino_orc;sleep 15;python ./manager.py "
+stuff "cd /home/ubuntu/vino_orc; git fetch; git checkout no_password; sleep 5;python ./manager.py "

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-echo "hello world" 
 touch /home/ubuntu/snort.conf
 cat << EOF > /home/ubuntu/snort.conf
 drop tcp any any -> any any (flags:S; msg:"Possible TCP DoS, reject"; flow:stateless; detection_filter:track by_src, count 10, seconds 2; sid:5000000;)

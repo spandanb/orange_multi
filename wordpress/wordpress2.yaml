@@ -1,0 +1,87 @@
+---
+- hosts: master
+  remote_user: ubuntu
+  tasks:
+    - copy: src=~/.ssh/id_rsa dest=/home/ubuntu/.ssh/id_rsa mode=0600
+    - copy: src=~/.ssh/id_rsa.pub dest=/home/ubuntu/.ssh/id_rsa.pub mode=0644
+
+    - name: write ext IP to file
+      shell: echo {{master_ip}} > /home/ubuntu/vino_orc/ext_ip
+
+    - shell: screen -X -S stack quit
+      ignore_errors: yes
+
+    - pause: seconds=15
+
+    - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
+
+    - name: run control stack in screen  
+      shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh
+
+- hosts: webserver 
+  remote_user: ubuntu
+  tasks:
+    - name: copy docker install script 
+      copy: src=docker_setup.sh  dest=/home/ubuntu/docker_setup.sh mode=0777
+
+    - apt: name=openvswitch-switch
+      become: true
+
+    - apt: name=openvswitch-common
+      become: true
+
+    - name: install docker
+      shell: /home/ubuntu/docker_setup.sh
+
+    - name: copy docker-compose.yaml
+      copy: src=docker-compose-wordpress.yaml dest=/home/ubuntu/docker-compose.yaml
+
+    - name: run docker compose
+      shell: chdir=/home/ubuntu docker-compose up -d 
+      become: true
+
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`/srv/t/80" >> /etc/crontab
+
+- hosts: gateway      
+  remote_user: ubuntu
+  tasks:
+    - name: update package registry
+      apt: update_cache=yes 
+      become: true  
+
+    - apt: name=openvswitch-switch
+      become: true
+
+    - apt: name=openvswitch-common
+      become: true
+
+    - apt: name=haproxy
+      become: true
+    
+    - name: insert wordpress in hosts
+      lineinfile: dest=/etc/hosts line="{{ webserver_ip }} wp"
+      become: true 
+
+    - name: copy haproxy script
+      copy: src=haproxy.cfg dest=/home/ubuntu/haproxy.cfg
+
+    - shell: haproxy -f /home/ubuntu/haproxy.cfg
+      become: true
+
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`/gw" >> /etc/crontab
+
+- hosts: firewall 
+  remote_user: ubuntu
+  tasks:
+    - name: contact master
+      become: true
+      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`" >> /etc/crontab
+
+    - name: config firewall
+      become: true
+      script: config_firewall.sh
+

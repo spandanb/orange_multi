@@ -3,6 +3,7 @@ from docker import docker_api
 from aws import ubuntu, AwsClient, get_server_ips
 import pdb
 from keys import sync_savi_key, sync_aws_key
+import keys
 import yaml
 import sys
 import os
@@ -23,10 +24,10 @@ def node_name(ntype):
     prefix = os.environ["OS_USERNAME"] + "-vino-"  
     return prefix + ntype
 
-def node_to_files(savi_ips, aws_ips,
+def node_to_files(savi_ips,
                              nodes_human_file='./nodes',
                              wordpress_hosts='./wordpress/hosts', 
-                             wordpress_run='./wordpress/wordpress_run.sh'):
+                             wordpress_run='./wordpress/run.sh'):
     """
     """
 
@@ -39,12 +40,10 @@ def node_to_files(savi_ips, aws_ips,
     with open(wordpress_hosts, 'w') as file_desc:
         file_desc.write("[master]\n")
         file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['master']))
-        file_desc.write("[database]\n")
-        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['db']))
         file_desc.write("[gateway]\n")
         file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['gw']))
         file_desc.write("[firewall]\n")
-        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['firewall']))
+        file_desc.write("{} ansible_user=ubuntu \n\n".format(savi_ips['fw']))
         file_desc.write("[webserver]\n")
         file_desc.write("{} ansible_user=ubuntu\n".format(savi_ips['ws']))
 
@@ -52,8 +51,8 @@ def node_to_files(savi_ips, aws_ips,
     with open(wordpress_run, 'w') as file_desc:
         file_desc.write("#!/bin/bash\n")
         file_desc.write(
-            'ansible-playbook -i hosts --extra-vars "db_ip={} master_ip={} webserver_ip={}" wordpress.yaml -f 10\n'
-            .format(savi_ips['db'], savi_ips['master'], savi_ips['webserver']))
+            'ansible-playbook -i hosts --extra-vars "master_ip={} webserver_ip={}" wordpress2.yaml\n'
+            .format(savi_ips['master'], savi_ips['ws']))
     os.chmod(wordpress_run, 0774)
 
 
@@ -78,8 +77,8 @@ def cleanup():
 
     #Delete any existing SAVI servers
     server_manager.delete_servers(name=node_name("master"))
-    server_manager.delete_servers(name=node_name("gw"))
-    server_manager.delete_servers(name=node_name("db"))
+    server_manager.delete_servers(name=node_name("gateway"))
+    server_manager.delete_servers(name=node_name("webserver"))
     server_manager.delete_servers(name=node_name("firewall"))
     
     #delete all existing nodes
@@ -111,31 +110,26 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
 
     #creates gw node on SAVI
-    print "Booting {} on SAVI...".format(node_name("gw"))
-    server_ids["gw"] = (server_manager.create_server(node_name("gw"), "Ubuntu64-3-OVS", "m1.small", 
+    print "Booting {} on SAVI...".format(node_name("gatway"))
+    server_ids["gw"] = (server_manager.create_server(node_name("gateway"), "Ubuntu64-3-OVS", "m1.small", 
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
 
     #creates firewall node on SAVI
     print "Booting {} on SAVI...".format(node_name("firewall"))
-    server_ids["firewall"] = (server_manager.create_server(node_name("firewall"), "snort-image.2", "m1.small", 
+    server_ids["fw"] = (server_manager.create_server(node_name("firewall"), "snort-image.2", "m1.small", 
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
     
     #creates db node on SAVI
-    print "Booting {} on SAVI...".format(node_name("db"))
-    server_ids["db"] = (server_manager.create_server(node_name("db"), "Ubuntu64-mysql-OVS", "m1.small", 
-                    key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
-
     print "Booting {} on SAVI...".format(node_name("webserver"))
-    server_ids["ws"] = (server_manager.create_server(node_name("db"), "Ubuntu1404-64", "m1.small", 
+    server_ids["ws"] = (server_manager.create_server(node_name("webserver"), "Ubuntu64-1404-OVS", "m1.small", 
                     key_name=SAVI_KEY_NAME, secgroups=["default", "spandantb"]))
 
     server_ips["master"] = server_manager.wait_until_sshable(server_ids["master"])
     server_ips["gw"] = server_manager.wait_until_sshable(server_ids["gw"])
-    server_ips["firewall"] = server_manager.wait_until_sshable(server_ids["firewall"])
-    server_ips["db"] = server_manager.wait_until_sshable(server_ids["db"])
+    server_ips["fw"] = server_manager.wait_until_sshable(server_ids["fw"])
     server_ips["ws"] = server_manager.wait_until_sshable(server_ids["ws"])
 
-    node_to_files(aws_ips, server_ips)
+    node_to_files(server_ips)
 
 def main():
     "parse args and call vino_wordpress"
@@ -163,13 +157,13 @@ def main():
     
     vino_wordpress(aws_keyname=args.aws_keyname[0], savi_keyname=args.savi_keyname[0])
 
-def test_aws():
-    server_manager, aws = get_clients()
-    ec2 = aws.ec2_client
-    pdb.set_trace()
-
 if __name__ == "__main__":
     #main()
-    vino_wordpress()
-    #cleanup()
-    #test_aws()
+    cleanup()
+#    vino_wordpress()
+#    node_to_files({
+#        'master': '10.12.1.23',
+#        'ws': '10.12.1.37',
+#        'fw': '10.12.1.42',
+#        'gw': '10.12.1.41'})
+

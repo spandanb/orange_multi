@@ -291,16 +291,16 @@ if __name__ == "__main__":
     #print ac.list_servers()
 
     #First, let's handle the keys
-    sync_aws_key(DEFAULT_KEYNAME, ac, clobber=True)
-    #ac.delete_all()
+    sync_aws_key(DEFAULT_KEYNAME, ac)
+    ac.delete_all()
 
-    print ac.get_secgroup_id()
+    #print ac.get_secgroup_id()
     #ac.delete_secgroup()
     
     #Now create a server 
-    instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
-    print "getting server IPs..."
-    print get_server_ips(ac, instance_ids)
+    #instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
+    #print "getting server IPs..."
+    #print get_server_ips(ac, instance_ids)
 
     
     #ac.list_security_groups()

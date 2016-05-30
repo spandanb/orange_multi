@@ -66,6 +66,7 @@ def get_pubkey_fingerprint(hashtype, privkey_path="~/.ssh/id_rsa", pubkey_path="
         pubkey_path:- location of public key
     """
     #TODO: why are the following 2 different; both are md5 hashes
+    #might be because of hostname
     if hashtype == "aws":
         privkey = RSA.importKey(open(expanduser(privkey_path)))
         pubkey = privkey.publickey()
@@ -130,7 +131,7 @@ def sync_savi_key(keyname, server_manager, clobber=False):
     keys = server_manager.get_keypairs()
     for key in keys:
         if key["keypair"]["name"] == keyname:
-            if key["keypair"]["public_key"] == get_pubkey(strip_hostname=True):
+            if key["keypair"]["fingerprint"] == get_pubkey_fingerprint("savi"): 
                 #Nothing to do here
                 return 
             else:

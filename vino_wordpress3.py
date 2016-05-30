@@ -93,8 +93,8 @@ def vino_wordpress(savi_keyname="", aws_keyname=""):
     SAVI_KEY_NAME=savi_keyname
     AWS_KEY_NAME=aws_keyname
 
-    SAVI_KEY_NAME="span_key"
-    AWS_KEY_NAME="spandan_key"
+    #SAVI_KEY_NAME="span_key"
+    #AWS_KEY_NAME="spandan_key"
 
     server_manager, aws = get_clients()
 
@@ -158,12 +158,6 @@ def main():
     vino_wordpress(aws_keyname=args.aws_keyname[0], savi_keyname=args.savi_keyname[0])
 
 if __name__ == "__main__":
-    #main()
-    cleanup()
-    vino_wordpress()
-#    node_to_files({
-#        'master': '10.12.1.23',
-#        'ws': '10.12.1.37',
-#        'fw': '10.12.1.42',
-#        'gw': '10.12.1.41'})
-
+    main()
+    #cleanup()
+    #vino_wordpress()

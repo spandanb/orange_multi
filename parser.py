@@ -82,6 +82,7 @@ def parse_node(resc):
         node["user_data"] = None
 
     node["is_master"] = resc.get("master", False)
+    node["is_gateway"] = resc.get("gateway", False)
 
     return node
 
@@ -139,15 +140,7 @@ def write_results(nodes):
     """
     Writes the results to file
     """
-    reduced = [] #Nodes with only the essential properties
-    for node in nodes:
-        if node["provider"] == "savi":
-            ip = node["fip"] if "fip" in node["fip"] else node["ip"] 
-            reduced.append({"id": node["id"], "ip": ip, "provider":"savi", "name":node["name"]})
-        else: #aws
-            reduced.append({"id": node["id"], "ip": node["ip"], "provider": "aws", "name":node["name"]})
-            
-    write_yaml(reduced, filepath=NODESFILE) 
+    write_yaml(nodes, filepath=NODESFILE) 
             
 def cleanup():
     """

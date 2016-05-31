@@ -167,6 +167,8 @@ def _chain(in_ip, ip_a, ip_b):
     """
 
 def main(argv):
+    """
+    """
     if len(argv) < 6:
         print "Usage: ./chaining.py <endpoing 1> <endpoing 2> <middlebox> <janus ip> <flow name>"
         sys.exit()
@@ -203,7 +205,5 @@ def create_chain(ep1="", ep2="", middlebox="", janus_ip="", flowname=""):
     
 
 if __name__ == '__main__':
-     #main(sys.argv)
-     create_chain(ep1="192.168.194.5", ep2="192.168.183.176", middlebox="192.168.208.204", janus_ip="142.150.208.237", flowname="span")
-     #create_chain(ep1="54.174.135.135", ep2="54.175.202.161", middlebox="142.150.208.204", janus_ip="10.12.1.23", flowname="span")
+     main(sys.argv)
 

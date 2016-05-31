@@ -9,7 +9,6 @@ Nodes:
         region: CORE
         tenant: demo1
         key_name: span_key 
-        assign_floating_ip: true
         security-groups: 
             - wordpress
     - 
@@ -22,41 +21,32 @@ Nodes:
         region: CORE
         tenant: demo2
         key_name: span_key
-        assign_floating_ip: true
         security-groups: 
             - wordpress
     - 
         name: span_vino_gateway
         role: gateway
-        image: aws::get_image_id(ubuntu)
-        flavor: t2.micro
-        provider: aws
+        image: Ubuntu64-1404-OVS
+        flavor: m1.small
+        provider: savi
         type: virtual-machine
-        region: us-east-1
-        key_name: spandan_key
+        region: CORE
+        tenant: demo2
+        key_name: span_key
         security-groups: 
             - wordpress
-        user_data: |
-            #!/bin/bash
-            sudo apt-get update
-            sudo apt-get install openvswitch-switch -y
-            sudo apt-get install openvswitch-common -y
 
     - 
         name: span_vino_webserver
         role: webserver
-        image: aws::get_image_id(ubuntu)
-        flavor: t2.micro
-        provider: aws 
+        image: Ubuntu64-1404-OVS
+        flavor: m1.small
+        provider: savi
         type: virtual-machine
-        region: us-east-1
-        key_name: spandan_key
+        region: CORE
+        tenant: demo2
+        key_name: span_key
         security-groups: 
             - wordpress
-        user_data: |
-            #!/bin/bash
-            sudo apt-get update
-            sudo apt-get install openvswitch-switch -y
-            sudo apt-get install openvswitch-common -y
 
 Edges:

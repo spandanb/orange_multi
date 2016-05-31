@@ -9,7 +9,11 @@ nodes.p
 openvpn/openvpn_run.sh
 openvpn/hosts
 
+master/hosts
+master/run.sh
+
 wordpress/wordpress_run.sh
+wordpress/configure_wordpress.sh
 wordpress/hosts
 
 trash/*

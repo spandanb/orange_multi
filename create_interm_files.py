@@ -8,6 +8,8 @@ def create_hosts_files():
     master_run      = "master/run.sh"
     nodes_file      = "nodes.yaml"
 
+    print "Creating host files..."
+    
     nodes = read_yaml(filepath=nodes_file)
 
     master_ip    = next((node['ip'] for node in nodes if node['role'] == 'master'), None)

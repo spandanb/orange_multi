@@ -30,3 +30,8 @@ Dependencies
 boto3, i.e. pip install boto3
 ansible
 requests
+
+NOTES
+=====
+env vars override topology, specifically specifying region-name, tenat has no 
+effect since nodes are booted based on env vars.

@@ -125,13 +125,17 @@ def instantiate_nodes(nodes):
             node_ip = savi.wait_until_sshable(node["id"])
             #The property 'ip' has value of floating-ip if defined, else ip
             if node["floating_ip"]:
-                print "Requesting Floating IP..."
+                print "Requesting floating IP for {}".format(node["id"]) 
                 node["ip"] = savi.assign_floating_ip(node["id"])
                 node["int_ip"] = node_ip
             else:
                 node["ip"] = node_ip
         else: #aws
             node["ip"] = get_server_ips(aws, [node["id"]])[0]
+
+    #Print some info 
+    for node in nodes:
+        print "{}({}) is available at {}".format(node["name"], node["id"], node["ip"])
 
     return nodes
 
@@ -155,8 +159,15 @@ def cleanup():
     print "Deleting on SAVI..."
     for node in nodes:
         if node["provider"] == "savi":
-            print "Deleteing {} ({})".format(node["name"], node["id"])
-            savi.delete_servers(server_id=node["id"])
+            print "Deleting {} ({})".format(node["name"], node["id"])
+            try:
+                savi.delete_servers(server_id=node["id"])
+            except ValueError as err:
+                print "Warning: nodes file ({}) is out of sync".format(NODESFILE)
+    
+    #Nuke the file
+    with open(NODESFILE, 'w') as fileptr:
+        fileptr.write('')
 
 def parse_args():
     """
@@ -166,7 +177,6 @@ def parse_args():
     
     parser.add_argument('-f', '--template-file', nargs=1, help="specify the template to use")
     parser.add_argument('-c', '--clean-up', action="store_true", help="Deletes any provisioned topologies")
-    parser.add_argument('-w', '--write', action="store_true", help="writes the server IPs to file")
     
     args = parser.parse_args()
 

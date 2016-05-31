@@ -1,12 +1,12 @@
 import yaml
 
-def read_yaml(template_file=""):
+def read_yaml(filepath=""):
     """
-    reads topology file at `template_file` and
+    reads topology file at `filepath` and
     returns corresponding object
     """
 
-    with open(template_file, 'r') as stream:
+    with open(filepath, 'r') as stream:
         try:
             template = yaml.load(stream)
         except yaml.YAMLError as exc:
@@ -14,6 +14,13 @@ def read_yaml(template_file=""):
             sys.exit(1)
 
     return template
+
+def write_yaml(data, filepath=""):
+    """
+    Writes obj in YAML format at filename
+    """
+    with open(filepath, 'w') as filedesc:
+        filedesc.write( yaml.dump(data, default_flow_style=True) )
 
 def create_and_raise(exception_name, exception_msg):
     """
@@ -32,3 +39,9 @@ def create_and_raise(exception_name, exception_msg):
     #Now raise the exception
     raise ExceptionClass(exception_msg)
 
+def printobj(obj):
+    pprint.pprint(obj)
+    #print json.dumps(obj, sort_keys=True, indent=4)
+
+if __name__ == "__main__":
+    write_yaml([{"id": "1a4bfc68-0c11-4f02-800c-871ef523278f", "ip":"10.12.1.23"}], filepath="nodes.yml")

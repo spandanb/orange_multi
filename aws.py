@@ -277,7 +277,7 @@ class AwsClient(object):
                             {'IpProtocol':'tcp', 'FromPort':22, 'ToPort':22, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'tcp', 'FromPort':80, 'ToPort':80, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'tcp', 'FromPort':5000, 'ToPort':5000, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
-                            {'IpProtocol':'udp', 'FromPort':1194, 'ToPort':1194, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] }
+                            {'IpProtocol':'udp', 'FromPort':1194, 'ToPort':1194, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
                             {'IpProtocol':'tcp', 'FromPort':4789, 'ToPort':4789, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] }
                         ])
         return secgroup_id

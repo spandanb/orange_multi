@@ -5,7 +5,7 @@ python parser.py -c
 sleep 5
 
 echo "Booting topology"
-python parser.py -f topology_wordpress2.yaml
+python parser.py -f topology_wordpress.yaml
 sleep 5
 
 echo "Preparing to run ansible"

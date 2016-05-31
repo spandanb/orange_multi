@@ -22,7 +22,6 @@ from socket import error as socket_error
 from utils import create_and_raise
 import sys
 
-
 def get_server_ips(aws_client, instance_ids, username="ubuntu"):
     """
     blocking method that waits until all server are ready and 
@@ -161,7 +160,7 @@ class AwsClient(object):
         subnet_id = resp['Subnets'][0]['SubnetId']
         secgroup_id = self.get_secgroup_id()
         net_ifaces=[{'SubnetId': subnet_id, 'DeviceIndex':0, 'AssociatePublicIpAddress':True, 'Groups':[secgroup_id]}]
-        
+
         resp = self.ec2_client.run_instances(
                 ImageId=image,
                 InstanceType=flavor,
@@ -299,8 +298,14 @@ if __name__ == "__main__":
     #ac.delete_secgroup(secgroup_id)
     
     #Now create a server 
-    #instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
-    #print "getting server IPs..."
-    #print get_server_ips(ac, instance_ids)
+    user_data = """#!/bin/bash
+    sudo apt-get update
+    sudo apt-get install openvswitch-switch -y
+    sudo apt-get install openvswitch-common switch -y
+    """
+
+    instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME, user_data=user_data)
+    print "getting server IPs..."
+    print get_server_ips(ac, instance_ids)
 
     #print ac.list_security_groups()

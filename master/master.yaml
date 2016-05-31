@@ -1,0 +1,23 @@
+---
+- hosts: master
+  remote_user: ubuntu
+  tasks:
+    - copy: src=~/.ssh/id_rsa dest=/home/ubuntu/.ssh/id_rsa mode=0600
+    - copy: src=~/.ssh/id_rsa.pub dest=/home/ubuntu/.ssh/id_rsa.pub mode=0644
+
+    - name: write ext IP to file
+      shell: echo {{master_ip}} > /home/ubuntu/vino_orc/ext_ip
+
+    - name: copy nodes.yaml
+      copy: src=../nodes.yaml dest=/home/ubuntu/vino_orc
+
+    - shell: screen -X -S stack quit
+      ignore_errors: yes
+
+    - pause: seconds=5
+
+    - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
+
+    - name: run control stack in screen  
+      shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh
+

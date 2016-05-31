@@ -65,6 +65,7 @@ def parse_node(resc):
     node["secgroups"] = resc.get("security-groups", [])
     node["key_name"]  = resc.get("key_name")
     node["region"]    = resc.get("region", "CORE")
+    node["role"]      = resc.get("role") #TODO: should be a list
     
     if resc.get("provider", "savi") == "savi":
         node["provider"]  = "savi" 
@@ -75,14 +76,8 @@ def parse_node(resc):
         if node["provider"] != "aws":
             create_and_raise("InvalidProviderException", "Provider must be 'savi' or 'aws'") 
 
-    if "user_data" in resc:
-        #must be base64 encoded
-        node["user_data"] = base64.standard_b64encode(resc.get("user_data"))
-    else:
-        node["user_data"] = None
-
-    node["is_master"] = resc.get("master", False)
-    node["is_gateway"] = resc.get("gateway", False)
+    #TODO: check whether need to base64 encode, AWS docs say so, but works w/o
+    node["user_data"] = resc.get("user_data")
 
     return node
 
@@ -122,17 +117,21 @@ def instantiate_nodes(nodes):
                 aws_key_synced = True
 
             print "Booting {} in AWS".format(node["name"])
-            node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"])[0]
+            node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"])[0]
 
     #Waiting-until-built loop
     for node in nodes:
         if node["provider"] == "savi":
-            node["ip"] = savi.wait_until_sshable(node["id"])
+            node_ip = savi.wait_until_sshable(node["id"])
+            #The property 'ip' has value of floating-ip if defined, else ip
             if node["floating_ip"]:
                 print "Requesting Floating IP..."
-                node["fip"] = savi.assign_floating_ip(node["id"])
+                node["ip"] = savi.assign_floating_ip(node["id"])
+                node["int_ip"] = node_ip
+            else:
+                node["ip"] = node_ip
         else: #aws
-            node["ip"] = get_server_ips(aws, [node["id"]]) 
+            node["ip"] = get_server_ips(aws, [node["id"]])[0]
 
     return nodes
 

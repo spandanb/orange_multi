@@ -1,4 +1,5 @@
 import yaml
+import sys
 
 def read_yaml(filepath=""):
     """
@@ -20,7 +21,7 @@ def write_yaml(data, filepath=""):
     Writes obj in YAML format at filename
     """
     with open(filepath, 'w') as filedesc:
-        filedesc.write( yaml.dump(data, default_flow_style=True) )
+        filedesc.write(yaml.dump(data))
 
 def create_and_raise(exception_name, exception_msg):
     """
@@ -43,5 +44,4 @@ def printobj(obj):
     pprint.pprint(obj)
     #print json.dumps(obj, sort_keys=True, indent=4)
 
-if __name__ == "__main__":
-    write_yaml([{"id": "1a4bfc68-0c11-4f02-800c-871ef523278f", "ip":"10.12.1.23"}], filepath="nodes.yml")
+

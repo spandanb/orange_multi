@@ -1,6 +1,7 @@
 Nodes:
     - 
-        name: master
+        name: span_vino_master
+        role: master
         image: master-sdi.0.7
         flavor: m1.small
         provider: savi 
@@ -11,12 +12,9 @@ Nodes:
         assign_floating_ip: true
         security-groups: 
             - wordpress
-        user_data: 
-            echo "hello world"
-        master: true #Set True for master node
-            
     - 
-        name: firewall
+        name: span_vino_firewall
+        role: firewall
         image: snort-image.2
         flavor: m1.small
         provider: savi
@@ -28,7 +26,8 @@ Nodes:
         security-groups: 
             - wordpress
     - 
-        name: gateway
+        name: span_vino_gateway
+        role: gateway
         image: aws::get_image_id(ubuntu)
         flavor: t2.micro
         provider: aws
@@ -38,8 +37,15 @@ Nodes:
         key_name: spandan_key
         security-groups: 
             - wordpress
+        user_data: |
+            #!/bin/bash
+            sudo apt-get update
+            sudo apt-get install openvswitch-switch -y
+            sudo apt-get install openvswitch-common -y
+
     - 
-        name: webserver
+        name: span_vino_webserver
+        role: webserver
         image: aws::get_image_id(ubuntu)
         flavor: t2.micro
         provider: aws 
@@ -49,6 +55,11 @@ Nodes:
         key_name: spandan_key
         security-groups: 
             - wordpress
+        user_data: |
+            #!/bin/bash
+            sudo apt-get update
+            sudo apt-get install openvswitch-switch -y
+            sudo apt-get install openvswitch-common -y
 
 Edges:
 

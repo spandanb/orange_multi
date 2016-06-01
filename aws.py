@@ -151,15 +151,18 @@ class AwsClient(object):
         resp = self.ec2_client.describe_security_groups()
         return resp['SecurityGroups']
 
-    def create_server(self, image, flavor, keyname='', user_data='', secgroups=[]):
+    def create_server(self, image, flavor, keyname='', user_data='', secgroups=["default"]):
         """
         Creates a server 
         """
         vpc_id = self.get_vpc_id()
         resp = self.ec2_client.describe_subnets(Filters=[{'Name':'vpc-id', 'Values':[vpc_id]}])
         subnet_id = resp['Subnets'][0]['SubnetId']
+
+        secgroup_ids = map(self.get_secgroup_id, secgroups)
+            
         secgroup_id = self.get_secgroup_id()
-        net_ifaces=[{'SubnetId': subnet_id, 'DeviceIndex':0, 'AssociatePublicIpAddress':True, 'Groups':[secgroup_id]}]
+        net_ifaces=[{'SubnetId': subnet_id, 'DeviceIndex':0, 'AssociatePublicIpAddress':True, 'Groups':secgroup_ids}]
 
         resp = self.ec2_client.run_instances(
                 ImageId=image,

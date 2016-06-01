@@ -12,27 +12,41 @@ import pprint, json
 from keys import sync_savi_key, sync_aws_key
 from utils import read_yaml, write_yaml, create_and_raise
 
+from paramiko import SSHClient, AutoAddPolicy
+
 ##############################################
 ################    CONSTS    ################
 ##############################################
 NODESFILE="./nodes.yaml"
 
-
-def resolve_special(form):
+def form_components(form):
     """
-    There are some special functions that can 
-    be used in template files. An example is
-    "aws::get_image_id(`image_name`)".
-    These need to be identified and resolved.
-    These forms can't be arbitrarily nested
+    Returns the various components of the form
     """
     form_arr = form.split("::")
-    if len(form_arr) == 1: return form_arr[0]
+    if len(form_arr) == 1: return form_arr
 
     namespace, method = form_arr
     method, args = method.split("(") #split on left-paren
     args = args.replace(")", "") #remove right paren
     args = args.split(",")
+    return namespace, method, args
+
+def resolve_parse(form):
+    """
+    There are some special functions that can 
+    be used in template files. An example is
+    "aws::get_image_id(`image_name`)".
+
+    These need to be identified and resolved.
+    These refer to special functions accessible at parse time.
+    These forms can't be nested. 
+    """
+    #Check if indeed this object needs to be resolved
+    form_comp = form_components(form)
+    if len(form_comp) == 1: return form_comp[0]
+
+    namespace, method, args = form_comp
 
     if namespace == "aws":
         if method == "get_image_id":
@@ -42,6 +56,35 @@ def resolve_special(form):
     else:
         print "Namespace {} not found".format(namespace)
    
+
+def resolve_config(form, ip=''):
+    """
+    These are the analogue special functions
+    that can be invoked during instantiation
+    e.g. install ovs.
+
+    """
+    form_comp = form_components(form)
+    if len(form_comp) == 1: return form_comp[0]
+
+    namespace, method, args = form_comp
+
+    if namespace == "utils":
+        if method == "install_openvswitch_2_3_3":
+            print "In install_openvswitch_2_3_3 ..."
+            #NOTE: See if there is better way
+            os.system('scp install_ovs.sh ubuntu@{}:/home/ubuntu'.format(ip) )
+            os.system("ssh ubuntu@{} '/home/ubuntu/install_ovs.sh'".format(ip) )
+
+            #ssh = SSHClient()
+            #ssh.set_missing_host_key_policy(AutoAddPolicy())
+            #ssh.connect(ip, "ubuntu") 
+            #stdin, stdout, stderr = ssh.exec_command("/home/ubuntu/install_ovs.sh")
+            #ssh.close()
+        else:
+            print "Method {} not found".format(method)
+    else:
+        print "Namespace {} not found".format(namespace)
 
 
 def parse_node(resc):
@@ -56,7 +99,7 @@ def parse_node(resc):
 
     node = {}
     #required fields
-    node["image"]  = resolve_special(resc["image"])
+    node["image"]  = resolve_parse(resc["image"])
     node["flavor"] = resc["flavor"]
     node["name"]   = resc["name"]
     node["type"]   = resc["type"]
@@ -76,8 +119,9 @@ def parse_node(resc):
         if node["provider"] != "aws":
             create_and_raise("InvalidProviderException", "Provider must be 'savi' or 'aws'") 
 
-    #TODO: check whether need to base64 encode, AWS docs say so, but works w/o
-    node["user_data"] = resc.get("user_data")
+    #TODO: check whether need to base64 encode, AWS docs say so, but works w/o anyways
+    node["user_data"] = resc.get("user_data", '')
+    node["on_boot"] = resc.get("on_boot")
 
     return node
 
@@ -132,6 +176,10 @@ def instantiate_nodes(nodes):
                 node["ip"] = node_ip
         else: #aws
             node["ip"] = get_server_ips(aws, [node["id"]])[0]
+            #Perform any special on_boot ops
+            if node["on_boot"]:
+                for item in node["on_boot"]:
+                    resolve_config(item, ip=node["ip"])
 
     #Print some info 
     for node in nodes:

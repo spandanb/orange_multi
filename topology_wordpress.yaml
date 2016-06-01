@@ -28,7 +28,7 @@ Nodes:
     - 
         name: span_vino_gateway
         role: gateway
-        image: aws::get_image_id(ubuntu)
+        image: ami-df24d9b2 #ubuntu with ovs
         flavor: t2.micro
         provider: aws
         type: virtual-machine
@@ -36,16 +36,11 @@ Nodes:
         key_name: spandan_key
         security-groups: 
             - wordpress
-        user_data: |
-            #!/bin/bash
-            sudo apt-get update
-            sudo apt-get install openvswitch-switch -y
-            sudo apt-get install openvswitch-common -y
 
     - 
         name: span_vino_webserver
         role: webserver
-        image: aws::get_image_id(ubuntu)
+        image: ami-df24d9b2 
         flavor: t2.micro
         provider: aws 
         type: virtual-machine
@@ -53,10 +48,4 @@ Nodes:
         key_name: spandan_key
         security-groups: 
             - wordpress
-        user_data: |
-            #!/bin/bash
-            sudo apt-get update
-            sudo apt-get install openvswitch-switch -y
-            sudo apt-get install openvswitch-common -y
-
 Edges:

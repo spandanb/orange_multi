@@ -32,7 +32,7 @@ def form_components(form):
     args = args.split(",")
     return namespace, method, args
 
-def resolve_parse(form):
+def resolve_parse(form, params):
     """
     There are some special functions that can 
     be used in template files. An example is
@@ -53,6 +53,12 @@ def resolve_parse(form):
             return ubuntu[os.environ["AWS_DEFAULT_REGION"]]
         else:
             print "Method {} not found".format(method)
+    elif namespace == "utils":
+        if method == "get_param":
+            return params[args[0]]
+        else:
+            print "Method {} not found".format(method)
+
     else:
         print "Namespace {} not found".format(namespace)
    
@@ -87,7 +93,7 @@ def resolve_config(form, ip=''):
         print "Namespace {} not found".format(namespace)
 
 
-def parse_node(resc):
+def parse_node(resc, params):
     """
     Parse a node object.
     There are a few special cases to handle
@@ -99,14 +105,14 @@ def parse_node(resc):
 
     node = {}
     #required fields
-    node["image"]  = resolve_parse(resc["image"])
+    node["image"]  = resolve_parse(resc["image"], params)
     node["flavor"] = resc["flavor"]
     node["name"]   = resc["name"]
     node["type"]   = resc["type"]
 
     #Optional Fields
     node["secgroups"] = resc.get("security-groups", [])
-    node["key_name"]  = resc.get("key_name")
+    node["key_name"]  = resolve_parse(resc.get("key_name"), params)
     node["region"]    = resc.get("region", "CORE")
     node["role"]      = resc.get("role") #TODO: should be a list
     
@@ -125,15 +131,47 @@ def parse_node(resc):
 
     return node
 
-def parse_template(template):
+def parse_template(template, user_params):
     """
     Reads topology file and creates required topology
     """
     topology = read_yaml(filepath=template)
+    
+    #Parse the parameters from the topology file
+    topo_params = topology["Parameters"].keys()
+    params = resolve_params(topo_params, user_params)
 
     #Parse the nodes
-    nodes = [parse_node(resc) for resc in topology["Nodes"]]
+    nodes = [parse_node(resc, params) for resc in topology["Nodes"]]
     return nodes
+
+def resolve_params(topo_params, user_params):
+    """
+    Parameters must be passed in the command line
+    or be set as environment variables.
+    """
+    resolved = {}
+    #Resolve based on user specified parameters
+    if user_params: 
+        for pairs in user_params.split(" "):
+            pname, pvalue = pair.split("=")
+            if pname in topo_params:
+                resolved[pname] = pvalue
+                topo_params.remove(pname)
+            else:
+                create_and_raise("InvalidParamException", 
+                                 "Unknown parameter: '{}' specified.".format(pname))
+
+    #Resolve based on env vars
+    for param in topo_params:
+        value = os.environ.get(param)
+        if not value: 
+            create_and_raise("UnspecifiedParameterException",
+                             "The parameter {} is undefined".format(param))
+        else:
+            resolved[param] = value
+
+    return resolved
 
 def instantiate_nodes(nodes):
     """
@@ -153,7 +191,8 @@ def instantiate_nodes(nodes):
                 savi_key_synced = True
             
             print "Booting {} in SAVI".format(node["name"])
-            node["id"] = savi.create_server(node['name'], node['image'], node['flavor'], secgroups=node["secgroups"], key_name=node["key_name"])
+            print node
+            #node["id"] = savi.create_server(node['name'], node['image'], node['flavor'], secgroups=node["secgroups"], key_name=node["key_name"])
 
         else: #aws
             if not aws_key_synced:
@@ -161,7 +200,10 @@ def instantiate_nodes(nodes):
                 aws_key_synced = True
 
             print "Booting {} in AWS".format(node["name"])
-            node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"])[0]
+            print node
+            #node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"])[0]
+
+    sys.exit(1)
 
     #Waiting-until-built loop
     for node in nodes:
@@ -217,6 +259,8 @@ def cleanup():
     with open(NODESFILE, 'w') as fileptr:
         fileptr.write('')
 
+
+
 def parse_args():
     """
     Parse arguments and call yaml parser
@@ -224,6 +268,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Vino command line interface')
     
     parser.add_argument('-f', '--template-file', nargs=1, help="specify the template to use")
+    parser.add_argument('-p', '--parameters', nargs=1, help="parameters to the template")
     parser.add_argument('-c', '--clean-up', action="store_true", help="Deletes any provisioned topologies")
     
     args = parser.parse_args()
@@ -232,7 +277,7 @@ def parse_args():
         cleanup()
     elif args.template_file:
         template = args.template_file[0]
-        nodes = parse_template(template)
+        nodes = parse_template(template, args.parameters)
         nodes = instantiate_nodes(nodes)
         write_results(nodes)
     else:

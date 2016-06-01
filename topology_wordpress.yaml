@@ -1,3 +1,9 @@
+Parameters:
+    savi_key_name:
+        description: Key for SAVI
+    aws_key_name:
+        description: Key for AWS
+
 Nodes:
     - 
         name: span_vino_master
@@ -8,7 +14,7 @@ Nodes:
         type: virtual-machine #[virtual-machine | container | baremetal]
         region: CORE
         tenant: demo1
-        key_name: span_key 
+        key_name: utils::get_param(savi_key_name)
         assign_floating_ip: true
         security-groups: 
             - wordpress
@@ -21,7 +27,7 @@ Nodes:
         type: virtual-machine
         region: CORE
         tenant: demo2
-        key_name: span_key
+        key_name: utils::get_param(savi_key_name) 
         assign_floating_ip: true
         security-groups: 
             - wordpress
@@ -33,7 +39,7 @@ Nodes:
         provider: aws
         type: virtual-machine
         region: us-east-1
-        key_name: spandan_key
+        key_name: utils::get_param(aws_key_name)
         security-groups: 
             - wordpress
 
@@ -45,7 +51,7 @@ Nodes:
         provider: aws 
         type: virtual-machine
         region: us-east-1
-        key_name: spandan_key
+        key_name: utils::get_param(aws_key_name)
         security-groups: 
             - wordpress
 Edges:

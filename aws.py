@@ -151,7 +151,7 @@ class AwsClient(object):
         resp = self.ec2_client.describe_security_groups()
         return resp['SecurityGroups']
 
-    def create_server(self, image, flavor, keyname='', user_data=''):
+    def create_server(self, image, flavor, keyname='', user_data='', secgroups=[]):
         """
         Creates a server 
         """
@@ -239,48 +239,115 @@ class AwsClient(object):
         else:
             return resp['Vpcs'][0]['VpcId']
 
-    def get_secgroup(self, group_name):
+    def _rule_matches(self, rule, candidate):
         """
-        The behavior around secgroups should be that first find the secgroup
-        if the rules don't match create a new secgroup and assign thta
+        Check if given rule matches candidate (rule).
+        """
+        if rule['FromPort'] != candidate['FromPort']:
+            return False
+        if rule['ToPort'] != candidate['ToPort']:
+            return False
+        if rule['IpProtocol'] != candidate['IpProtocol']:
+            return False
+        if sorted([{'CidrIp': rng} for rng in rule['IpRanges']]) != sorted(candidate['IpRanges']):
+            return False
+        return True
+
+    def _all_rules_match(self, rules, existing):
+        """
+        Check if all `rules` is a subset of`existing`.
+        Arguments:- 
+            rules:- list of new security rules
+            existing:- list of exsiting security rules
+        """
+        for rule in rules:
+            for candidate in existing:
+                if self._rule_matches(rule, candidate):
+                    break
+            else:
+               #For loop continued w/o break => mismatch
+               return False
+        return True
+
+                    
+    def create_secgroup(self, group_name, rules, description=" "):
+        """
+        Creates a secgroup and returns its id.
+        If a secgroup with the same name exists (group names are unique
+        in a VPC), checks whether the rules match. If they don't match
+        raises an exception. 
+
+        Rules should be the following format:
+        rules = {'Ingress': [
+                              {'IpProtocol': 'tcp', 'FromPort': 22, 'ToPort':22, 'IpRanges': ['0.0.0.0/0']  }
+                            ], 
+                 'Egress': []
+                 }
         """
 
+        #secgroup names are unique per VPC
         resp = self.ec2_client.describe_security_groups(Filters=[{'Name':'group-name', 'Values': [group_name]}])
-        pdb.set_trace()
+        
+        if len(resp['SecurityGroups']) > 0:
+            #Check if the rules matches
+            secgroup = resp['SecurityGroups'][0]
+
+            #Compare ingress and egress rules
+            match = self._all_rules_match(rules["Ingress"], secgroup["IpPermissions"]) and \
+                        self._all_rules_match(rules["Egress"], secgroup["IpPermissionsEgress"])
+            if match:
+                return secgroup['GroupId']
+            else:
+                create_and_raise("SecurityRuleMismatchException", 
+                                 "Security group with name {} exists with different rules".format(group_name))
 
 
-    def get_secgroup_id(self):
+        else: 
+            #create the Secgroup
+            vpc_id = self.get_vpc_id()
+            resp = self.ec2_client.create_security_group(GroupName=group_name, 
+                                                         Description=description,
+                                                         VpcId=vpc_id)
+            secgroup_id = resp['GroupId']
+
+            #Add the ingress rules
+            if rules["Ingress"]:
+                rules_list = []
+                for rule in rules["Ingress"]:
+                    to_add = {"IpProtocol" : rule["IpProtocol"], 
+                              "FromPort"   : rule["FromPort"], 
+                              "ToPort"     : rule["ToPort"], 
+                              "IpRanges"   : [{"CidrIp": rng} for rng in rule["IpRanges"]]}
+                    rules_list.append(to_add)
+    
+                self.ec2_client.authorize_security_group_ingress(GroupId=secgroup_id, IpPermissions=rules_list)
+    
+            #Add the egress rules
+            if rules["Egress"]:
+                rules_list = []
+                for rule in rules["Egress"]:
+                    to_add = {"IpProtocol" : rule["IpProtocol"], 
+                              "FromPort"   : rule["FromPort"], 
+                              "ToPort"     : rule["ToPort"], 
+                              "IpRanges"   : [{"CidrIp": rng} for rng in rule["IpRanges"]]}
+                    rules_list.append(to_add)
+
+                self.ec2_client.authorize_security_group_egress(GroupId=secgroup_id, IpPermissions=rules_list)
+
+
+    def get_secgroup_id(self, group_name):
         """
         Returns wordpress secgroup Id, 
         If does not exist; creates wordpress secgroup and adds rules
         and returns id
         """
-        group_name = 'wordpress1'
-        #check if group exists
+
         resp = self.ec2_client.describe_security_groups(Filters=[{'Name':'group-name', 'Values': [group_name]}])
         
         if len(resp['SecurityGroups']) > 0: 
-            secgroup_id = resp['SecurityGroups'][0]['GroupId'] 
+            return resp['SecurityGroups'][0]['GroupId'] 
         else:
-            #create the Secgroup
-            vpc_id = self.get_vpc_id()
-            resp = self.ec2_client.create_security_group(GroupName=group_name, 
-                                                         Description='wordpress sec group', 
-                                                         VpcId=vpc_id)
-    
-            #Add the rules
-            secgroup_id = resp['GroupId']
-            self.ec2_client.authorize_security_group_ingress(
-                        GroupId=secgroup_id, 
-                        IpPermissions=[
-                            {'IpProtocol':'icmp', 'FromPort':-1, 'ToPort':-1, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
-                            {'IpProtocol':'tcp', 'FromPort':22, 'ToPort':22, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
-                            {'IpProtocol':'tcp', 'FromPort':80, 'ToPort':80, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
-                            {'IpProtocol':'tcp', 'FromPort':5000, 'ToPort':5000, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
-                            {'IpProtocol':'udp', 'FromPort':1194, 'ToPort':1194, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] },
-                            {'IpProtocol':'tcp', 'FromPort':4789, 'ToPort':4789, 'IpRanges':[{'CidrIp':'0.0.0.0/0'}] }
-                        ])
-        return secgroup_id
+            return None
 
     def delete_secgroup(self, secgroup_id):
         """
@@ -303,13 +370,19 @@ if __name__ == "__main__":
 
     #First, let's handle the keys
     #sync_aws_key(DEFAULT_KEYNAME, ac)
-    ac.delete_all()
+    #ac.delete_all()
 
-    secgroup_id = ac.get_secgroup_id()
+    #secgroup_id = ac.get_secgroup("wordpress1", [])
     #ac.delete_secgroup(secgroup_id)
+    rules = {"Ingress": [{"IpProtocol":"tcp", "FromPort":80, "ToPort":80, "IpRanges":["0.0.0.0/0"]}], "Egress":[]}
+    print ac.create_secgroup("wordpress3", rules)
+
+    #First check if secgroup exists
+    #If not check and add it 
+    #Then boot servers
     
-    instance_ids = ac.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
-    print "getting server IPs..."
-    print get_server_ips(ac, instance_ids)
+    #instance_ids = ac.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
+    #print "getting server IPs..."
+    #print get_server_ips(ac, instance_ids)
 
     #print ac.list_security_groups()

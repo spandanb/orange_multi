@@ -44,4 +44,9 @@ def printobj(obj):
     pprint.pprint(obj)
     #print json.dumps(obj, sort_keys=True, indent=4)
 
+def overlay_ip(ip):
+    """Returns the overlay IP 
+    i.e. X.X.A.B -> 192.168.A.B
+    """
+    return "192.168.{}.{}".format( *ip.split(".")[2:])
 

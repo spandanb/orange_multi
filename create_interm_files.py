@@ -1,4 +1,4 @@
-from utils import read_yaml
+from utils import read_yaml, overlay_ip
 import os
 
 def create_hosts_files():
@@ -42,7 +42,7 @@ def create_hosts_files():
         fileptr.write("#!/bin/bash\n")
         fileptr.write(
             'ansible-playbook -i hosts --extra-vars "webserver_ip={}" wordpress3.yaml\n'
-            .format(webserver_ip))
+            .format(overlay_ip(webserver_ip)))
     os.chmod(wordpress_run, 0774)
 
 

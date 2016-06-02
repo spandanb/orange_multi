@@ -1,10 +1,10 @@
-Parameters:
+parameters:
     savi_key_name:
-        description: Key for SAVI
+        description: SAVI keypair name.
     aws_key_name:
-        description: Key for AWS
+        description: AWS keypair name.
 
-Nodes:
+nodes:
     - 
         name: span_vino_master
         role: master
@@ -14,10 +14,10 @@ Nodes:
         type: virtual-machine #[virtual-machine | container | baremetal]
         region: CORE
         tenant: demo1
-        key_name: utils::get_param(savi_key_name)
-        assign_floating_ip: true
+        key-name: utils::get_param(savi_key_name)
+        assign-floating-ip: true
         security-groups: 
-            - wordpress
+            - wordpress-vino
     - 
         name: span_vino_firewall
         role: firewall
@@ -27,10 +27,10 @@ Nodes:
         type: virtual-machine
         region: CORE
         tenant: demo2
-        key_name: utils::get_param(savi_key_name) 
-        assign_floating_ip: true
+        key-name: utils::get_param(savi_key_name) 
+        assign-floating-ip: true
         security-groups: 
-            - wordpress
+            - wordpress-vino
     - 
         name: span_vino_gateway
         role: gateway
@@ -39,9 +39,9 @@ Nodes:
         provider: aws
         type: virtual-machine
         region: us-east-1
-        key_name: utils::get_param(aws_key_name)
+        key-name: utils::get_param(aws_key_name)
         security-groups: 
-            - wordpress
+            - wordpress-vino
 
     - 
         name: span_vino_webserver
@@ -51,13 +51,13 @@ Nodes:
         provider: aws 
         type: virtual-machine
         region: us-east-1
-        key_name: utils::get_param(aws_key_name)
+        key-name: utils::get_param(aws_key_name)
         security-groups: 
-            - wordpress
-Edges:
+            - wordpress-vino
+edges:
 
 
-Resources:
+resources:
     - 
         name: wordpress-vino
         type: security-group

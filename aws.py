@@ -159,7 +159,7 @@ class AwsClient(object):
         resp = self.ec2_client.describe_subnets(Filters=[{'Name':'vpc-id', 'Values':[vpc_id]}])
         subnet_id = resp['Subnets'][0]['SubnetId']
 
-        secgroup_ids = map(self.get_secgroup(get_id=True), secgroups)
+        secgroup_ids = [self.get_secgroup(name, get_id=True) for name in secgroups]
             
         net_ifaces=[{'SubnetId': subnet_id, 'DeviceIndex':0, 'AssociatePublicIpAddress':True, 'Groups':secgroup_ids}]
 
@@ -213,6 +213,14 @@ class AwsClient(object):
                 ]
             )
         return resp['Reservations']
+    
+    def delete_servers(self, server_ids):
+        """
+        Deletes the servers referenced by
+        server_ids
+        """
+        self.ec2_client.terminate_instances(InstanceIds=server_ids)
+
 
     def delete_all(self):
         """
@@ -321,7 +329,8 @@ class AwsClient(object):
                           "IpRanges"   : [{"CidrIp": rng} for rng in rule["allowed"]]}
                 rules_list.append(to_add)
 
-            self.ec2_client.authorize_security_group_ingress(GroupId=secgroup_id, IpPermissions=rules_list)
+            if rules_list:
+                self.ec2_client.authorize_security_group_ingress(GroupId=secgroup_id, IpPermissions=rules_list)
     
             #Add the egress rules
             rules_list = []
@@ -332,7 +341,10 @@ class AwsClient(object):
                           "IpRanges"   : [{"CidrIp": rng} for rng in rule["allowed"]]}
                 rules_list.append(to_add)
 
-            self.ec2_client.authorize_security_group_egress(GroupId=secgroup_id, IpPermissions=rules_list)
+            if rules_list:
+                #self.ec2_client.authorize_security_group_egress(GroupId=secgroup_id, IpPermissions=rules_list)
+                #NOTE: This maybe a boto bug since the docs show the param name is 'IpPermissions', not 'ipPermissions'
+                self.ec2_client.authorize_security_group_egress(GroupId=secgroup_id, ipPermissions=rules_list)
 
 
     def get_secgroup(self, group_name, get_id=False):

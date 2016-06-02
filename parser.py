@@ -13,6 +13,13 @@ from keys import sync_savi_key, sync_aws_key
 from utils import read_yaml, write_yaml, create_and_raise
 
 ##############################################
+################     TODO     ################
+##############################################
+"""
+1) user_data for SAVI nodes
+"""
+
+##############################################
 ################    CONSTS    ################
 ##############################################
 NODESFILE="./nodes.yaml"
@@ -118,22 +125,22 @@ def parse_node(resc, params):
 
     #Optional Fields
     node["secgroups"] = resc.get("security-groups", [])
-    node["key_name"]  = resolve_parse(resc.get("key_name"), params)
+    node["key_name"]  = resolve_parse(resc.get("key-name"), params)
     node["region"]    = resc.get("region", "CORE")
     node["role"]      = resc.get("role") #TODO: should be a list
     
     if resc.get("provider", "savi") == "savi":
         node["provider"]  = "savi" 
         node["tenant"]    = resc["tenant"]
-        node["floating_ip"] = resc.get("assign_floating_ip", False)
+        node["floating_ip"] = resc.get("assign-floating-ip", False)
     else:
         node["provider"] = resc.get("provider")
         if node["provider"] != "aws":
             create_and_raise("InvalidProviderException", "Provider must be 'savi' or 'aws'") 
 
     #TODO: check whether need to base64 encode, AWS docs say so, but works w/o anyways
-    node["user_data"] = resc.get("user_data", '')
-    node["on_boot"] = resc.get("on_boot")
+    node["user_data"] = resc.get("user-data", '')
+    node["on_boot"] = resc.get("on-boot")
 
     return node
 
@@ -144,21 +151,21 @@ def parse_template(template, user_params):
     topology = read_yaml(filepath=template)
     
     #Parse the parameters from the topology file
-    if "Parameters" in topology:
-        topo_params = topology["Parameters"].keys()
+    if "parameters" in topology:
+        topo_params = topology["parameters"].keys()
         params = resolve_params(topo_params, user_params)
     else:
         params = {}
 
     #Parse the other resources
-    if "Resources" in topology:
-        others =[parse_other(resc) for resc in topology["Resources"]]
+    if "resources" in topology:
+        others =[parse_other(resc) for resc in topology["resources"]]
     else:
         others = []
 
     #Parse the nodes
-    if "Nodes" in topology:
-        nodes = [parse_node(resc, params) for resc in topology["Nodes"]]
+    if "nodes" in topology:
+        nodes = [parse_node(resc, params) for resc in topology["nodes"]]
     else:
         nodes = []
 
@@ -172,7 +179,7 @@ def resolve_params(topo_params, user_params):
     resolved = {}
     #Resolve based on user specified parameters
     if user_params: 
-        for pairs in user_params.split(" "):
+        for pair in user_params.split(" "):
             pname, pvalue = pair.split("=")
             if pname in topo_params:
                 resolved[pname] = pvalue
@@ -237,7 +244,7 @@ def instantiate_nodes(nodes):
                 aws_key_synced = True
 
             print "Booting {} in AWS".format(node["name"])
-            node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"])[0]
+            node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"], secgroups=node["secgroups"])[0]
 
     #Waiting-until-built loop
     for node in nodes:
@@ -276,19 +283,26 @@ def cleanup():
     aws =  get_aws_client()
     savi = get_savi_client()  
    
-    print "Deleting on AWS..."
-    aws.delete_all()
-
     nodes = read_yaml(filepath=NODESFILE)
-    print "Deleting on SAVI..."
-    for node in nodes:
-        if node["provider"] == "savi":
-            print "Deleting {} ({})".format(node["name"], node["id"])
-            try:
-                savi.delete_servers(server_id=node["id"])
-            except ValueError as err:
-                print "Warning: nodes file ({}) is out of sync".format(NODESFILE)
+    savi_nodes = [node for node in nodes if node["provider"] == "savi"]
+    aws_nodes = [node["id"] for node in nodes if node["provider"] == "aws"]
+
+    print "Deleting on SAVI nodes..."
+    for node in savi_nodes:
+        print "Deleting {} ({})".format(node["name"], node["id"])
+        try:
+            savi.delete_servers(server_id=node["id"])
+        except ValueError as err:
+            print "Warning: nodes file ({}) may be out of sync".format(NODESFILE)
     
+    print "Deleting AWS nodes..."
+    for node in aws_nodes: 
+        print "deleting {}".format(node)
+    try:
+        aws.delete_servers(aws_nodes)
+    except: 
+        print "Warning: nodes file ({}) may be out of sync".format(NODESFILE)
+
     #Nuke the file
     with open(NODESFILE, 'w') as fileptr:
         fileptr.write('')
@@ -310,7 +324,8 @@ def parse_args():
         cleanup()
     elif args.template_file:
         template = args.template_file[0]
-        others, nodes = parse_template(template, args.parameters)
+        parameters = args.parameters[0] if args.parameters else None
+        others, nodes = parse_template(template, parameters)
         others = instantiate_others(others)
         nodes = instantiate_nodes(nodes)
         write_results(nodes)

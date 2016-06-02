@@ -55,3 +55,42 @@ Nodes:
         security-groups: 
             - wordpress
 Edges:
+
+
+Resources:
+    - 
+        name: wordpress
+        type: security-group
+        rules: 
+            - 
+                from: 22
+                to: 22
+                protocol: tcp
+                allowed:
+                    -
+                        0.0.0.0/0
+            - 
+                from: 80
+                to: 80
+                protocol: tcp
+                allowed:
+                    -
+                        0.0.0.0/0
+
+            - 
+                from: 5000
+                to: 5000
+                protocol: tcp
+                allowed:
+                    -
+                        0.0.0.0/0
+
+            - 
+                from: 4789
+                to: 4789
+                protocol: udp
+                allowed:
+                    -
+                        0.0.0.0/0
+
+

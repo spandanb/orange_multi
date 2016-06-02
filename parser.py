@@ -92,6 +92,21 @@ def resolve_config(form, ip=''):
     else:
         print "Namespace {} not found".format(namespace)
 
+def parse_other(resc):
+    """
+    Parse other resource objects.
+    This includes security group.
+    """
+    obj = {}
+    other["type"] = resc["type"]
+    if obj["type"] = "security-group":
+        obj["name"] = resc["name"]
+        obj["description"] = resc["description"]
+        obj["rules"] = resc["rules"] 
+    
+    return obj
+
+
 
 def parse_node(resc, params):
     """
@@ -137,13 +152,18 @@ def parse_template(template, user_params):
     """
     topology = read_yaml(filepath=template)
     
+    #Parse the other resources
+    others =[parse_other(resc) for resc in topology["Resources"]]
+
     #Parse the parameters from the topology file
     topo_params = topology["Parameters"].keys()
     params = resolve_params(topo_params, user_params)
 
+
     #Parse the nodes
     nodes = [parse_node(resc, params) for resc in topology["Nodes"]]
-    return nodes
+
+    return others, nodes
 
 def resolve_params(topo_params, user_params):
     """
@@ -172,6 +192,19 @@ def resolve_params(topo_params, user_params):
             resolved[param] = value
 
     return resolved
+
+def instantiate_others(others):
+    """
+    Instantiate the other resources 
+    """
+    aws =  get_aws_client()
+    savi = get_savi_client()  
+   
+    for other in others:
+        if other["type"] == "security-group":
+            other["rules"]
+
+
 
 def instantiate_nodes(nodes):
     """
@@ -260,7 +293,6 @@ def cleanup():
         fileptr.write('')
 
 
-
 def parse_args():
     """
     Parse arguments and call yaml parser
@@ -277,7 +309,7 @@ def parse_args():
         cleanup()
     elif args.template_file:
         template = args.template_file[0]
-        nodes = parse_template(template, args.parameters)
+        other, nodes = parse_template(template, args.parameters)
         nodes = instantiate_nodes(nodes)
         write_results(nodes)
     else:

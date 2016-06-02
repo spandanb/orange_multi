@@ -280,10 +280,14 @@ def cleanup():
     """
     Reads last created topology and deletes it
     """
+    nodes = read_yaml(filepath=NODESFILE)
+    if not nodes:
+        print "Nothing to delete...."
+        return 
+
     aws =  get_aws_client()
     savi = get_savi_client()  
    
-    nodes = read_yaml(filepath=NODESFILE)
     savi_nodes = [node for node in nodes if node["provider"] == "savi"]
     aws_nodes = [node["id"] for node in nodes if node["provider"] == "aws"]
 

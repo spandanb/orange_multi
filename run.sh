@@ -12,9 +12,13 @@ echo "Preparing to run ansible"
 python create_interm_files.py
 sleep 5
 
+echo "Configuring master"
 cd master
 ./run.sh
 
+sleep 120
+
+echo "Configuring nodes"
 cd ../wordpress
 ./configure_wordpress.sh
 

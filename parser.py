@@ -12,8 +12,6 @@ import pprint, json
 from keys import sync_savi_key, sync_aws_key
 from utils import read_yaml, write_yaml, create_and_raise
 
-from paramiko import SSHClient, AutoAddPolicy
-
 ##############################################
 ################    CONSTS    ################
 ##############################################
@@ -82,11 +80,6 @@ def resolve_config(form, ip=''):
             os.system('scp install_ovs.sh ubuntu@{}:/home/ubuntu'.format(ip) )
             os.system("ssh ubuntu@{} '/home/ubuntu/install_ovs.sh'".format(ip) )
 
-            #ssh = SSHClient()
-            #ssh.set_missing_host_key_policy(AutoAddPolicy())
-            #ssh.connect(ip, "ubuntu") 
-            #stdin, stdout, stderr = ssh.exec_command("/home/ubuntu/install_ovs.sh")
-            #ssh.close()
         else:
             print "Method {} not found".format(method)
     else:
@@ -105,8 +98,6 @@ def parse_other(resc):
         obj["rules"] = resc["rules"] 
     
     return obj
-
-
 
 def parse_node(resc, params):
     """
@@ -199,11 +190,35 @@ def instantiate_others(others):
     """
     aws =  get_aws_client()
     savi = get_savi_client()  
-   
+
     for other in others:
         if other["type"] == "security-group":
-            other["rules"]
+            #Creates rules on both AWS and SAVI for current specified region, tenant    
+            ingress_aws = []
+            ingress_savi = []
+            for rule in other["ingress_rules"]:
+                ingress_aws.append({"IpProtocol": rule['protocol'],
+                                    "FromPort"  : rule['from'],
+                                    "ToPort"    : rule['to']
+                                    "IpRanges"  : rule["ranges"]})
+                ingress_savi.append({
+                })
 
+            egress_aws = []
+            egress_savi = []
+            for rule in other["egress_rules"]:
+                egress_aws.append({"IpProtocol": rule['protocol'],
+                                    "FromPort"  : rule['from'],
+                                    "ToPort"    : rule['to']
+                                    "IpRanges"  : rule["ranges"]})
+                egress_savi.append({
+                })
+
+           aws_rules  = {"Ingress": ingress_aws, "Egress": egress_aws}    
+           savi_rules - {"Ingress": ingress_savi, "Egress": egress_savi}    
+    
+           aws.create_secgroup(self, other["name"], aws_rules, other.get("description"))
+           savi.create_secgroup(self, other["name"], savi_rules, other.get("description"))
 
 
 def instantiate_nodes(nodes):

@@ -61,7 +61,7 @@ Resources:
     - 
         name: wordpress
         type: security-group
-        rules: 
+        ingress_rule: 
             - 
                 from: 22
                 to: 22
@@ -93,4 +93,4 @@ Resources:
                     -
                         0.0.0.0/0
 
-
+        egress_rule: 

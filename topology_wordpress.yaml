@@ -59,9 +59,10 @@ Edges:
 
 Resources:
     - 
-        name: wordpress
+        name: wordpress-vino
         type: security-group
-        ingress_rule: 
+        description: testing
+        ingress: 
             - 
                 from: 22
                 to: 22
@@ -78,12 +79,12 @@ Resources:
                         0.0.0.0/0
 
             - 
-                from: 5000
-                to: 5000
+                from: 8080
+                to: 8080
                 protocol: tcp
                 allowed:
                     -
-                        0.0.0.0/0
+                        192.168.0.0/16
 
             - 
                 from: 4789
@@ -93,4 +94,4 @@ Resources:
                     -
                         0.0.0.0/0
 
-        egress_rule: 
+        egress: 

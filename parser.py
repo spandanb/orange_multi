@@ -90,14 +90,14 @@ def parse_other(resc):
     Parse other resource objects.
     This includes security group.
     """
-    obj = {}
-    other["type"] = resc["type"]
-    if obj["type"] = "security-group":
-        obj["name"] = resc["name"]
-        obj["description"] = resc["description"]
-        obj["rules"] = resc["rules"] 
+    other = {'type': resc["type"]}
+    if other["type"] == "security-group":
+        other["name"] = resc["name"]
+        other["description"] = resc["description"]
+        other["ingress"] = resc.get("ingress") or []
+        other["egress"] = resc.get("egress") or []
     
-    return obj
+    return other
 
 def parse_node(resc, params):
     """
@@ -143,16 +143,24 @@ def parse_template(template, user_params):
     """
     topology = read_yaml(filepath=template)
     
-    #Parse the other resources
-    others =[parse_other(resc) for resc in topology["Resources"]]
-
     #Parse the parameters from the topology file
-    topo_params = topology["Parameters"].keys()
-    params = resolve_params(topo_params, user_params)
+    if "Parameters" in topology:
+        topo_params = topology["Parameters"].keys()
+        params = resolve_params(topo_params, user_params)
+    else:
+        params = {}
 
+    #Parse the other resources
+    if "Resources" in topology:
+        others =[parse_other(resc) for resc in topology["Resources"]]
+    else:
+        others = []
 
     #Parse the nodes
-    nodes = [parse_node(resc, params) for resc in topology["Nodes"]]
+    if "Nodes" in topology:
+        nodes = [parse_node(resc, params) for resc in topology["Nodes"]]
+    else:
+        nodes = []
 
     return others, nodes
 
@@ -193,32 +201,14 @@ def instantiate_others(others):
 
     for other in others:
         if other["type"] == "security-group":
+            rules = {"ingress": other.get("ingress", []), "egress": other.get("egress", [])}
+            
             #Creates rules on both AWS and SAVI for current specified region, tenant    
-            ingress_aws = []
-            ingress_savi = []
-            for rule in other["ingress_rules"]:
-                ingress_aws.append({"IpProtocol": rule['protocol'],
-                                    "FromPort"  : rule['from'],
-                                    "ToPort"    : rule['to']
-                                    "IpRanges"  : rule["ranges"]})
-                ingress_savi.append({
-                })
+            aws_id = aws.create_secgroup(other["name"], rules, description=other.get("description"))
+            savi_id = savi.create_secgroup(other["name"], rules, description=other.get("description"))
 
-            egress_aws = []
-            egress_savi = []
-            for rule in other["egress_rules"]:
-                egress_aws.append({"IpProtocol": rule['protocol'],
-                                    "FromPort"  : rule['from'],
-                                    "ToPort"    : rule['to']
-                                    "IpRanges"  : rule["ranges"]})
-                egress_savi.append({
-                })
-
-           aws_rules  = {"Ingress": ingress_aws, "Egress": egress_aws}    
-           savi_rules - {"Ingress": ingress_savi, "Egress": egress_savi}    
-    
-           aws.create_secgroup(self, other["name"], aws_rules, other.get("description"))
-           savi.create_secgroup(self, other["name"], savi_rules, other.get("description"))
+            other["aws-id"] = aws_id
+            other["savi-id"] = savi_id
 
 
 def instantiate_nodes(nodes):
@@ -239,8 +229,7 @@ def instantiate_nodes(nodes):
                 savi_key_synced = True
             
             print "Booting {} in SAVI".format(node["name"])
-            print node
-            #node["id"] = savi.create_server(node['name'], node['image'], node['flavor'], secgroups=node["secgroups"], key_name=node["key_name"])
+            node["id"] = savi.create_server(node['name'], node['image'], node['flavor'], secgroups=node["secgroups"], key_name=node["key_name"])
 
         else: #aws
             if not aws_key_synced:
@@ -248,10 +237,7 @@ def instantiate_nodes(nodes):
                 aws_key_synced = True
 
             print "Booting {} in AWS".format(node["name"])
-            print node
-            #node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"])[0]
-
-    sys.exit(1)
+            node["id"] = aws.create_server(node["image"], node["flavor"], keyname=node["key_name"], user_data=node["user_data"])[0]
 
     #Waiting-until-built loop
     for node in nodes:
@@ -324,7 +310,8 @@ def parse_args():
         cleanup()
     elif args.template_file:
         template = args.template_file[0]
-        other, nodes = parse_template(template, args.parameters)
+        others, nodes = parse_template(template, args.parameters)
+        others = instantiate_others(others)
         nodes = instantiate_nodes(nodes)
         write_results(nodes)
     else:
@@ -332,5 +319,4 @@ def parse_args():
         create_and_raise("TemplateNotSpecifiedException", "Please specify a template file")
         
 if __name__ == "__main__":
-    #TODO: creating new secgroup
     parse_args()

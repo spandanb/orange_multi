@@ -159,9 +159,8 @@ class AwsClient(object):
         resp = self.ec2_client.describe_subnets(Filters=[{'Name':'vpc-id', 'Values':[vpc_id]}])
         subnet_id = resp['Subnets'][0]['SubnetId']
 
-        secgroup_ids = map(self.get_secgroup_id, secgroups)
+        secgroup_ids = map(self.get_secgroup(get_id=True), secgroups)
             
-        secgroup_id = self.get_secgroup_id()
         net_ifaces=[{'SubnetId': subnet_id, 'DeviceIndex':0, 'AssociatePublicIpAddress':True, 'Groups':secgroup_ids}]
 
         resp = self.ec2_client.run_instances(
@@ -246,13 +245,13 @@ class AwsClient(object):
         """
         Check if given rule matches candidate (rule).
         """
-        if rule['FromPort'] != candidate['FromPort']:
+        if rule['from'] != candidate['FromPort']:
             return False
-        if rule['ToPort'] != candidate['ToPort']:
+        if rule['to'] != candidate['ToPort']:
             return False
-        if rule['IpProtocol'] != candidate['IpProtocol']:
+        if rule['protocol'] != candidate['IpProtocol']:
             return False
-        if sorted([{'CidrIp': rng} for rng in rule['IpRanges']]) != sorted(candidate['IpRanges']):
+        if sorted([{'CidrIp': rng} for rng in rule['allowed']]) != sorted(candidate['IpRanges']):
             return False
         return True
 
@@ -281,10 +280,10 @@ class AwsClient(object):
         raises an exception. 
 
         Rules should be the following format:
-        rules = {'Ingress': [
-                              {'IpProtocol': 'tcp', 'FromPort': 22, 'ToPort':22, 'IpRanges': ['0.0.0.0/0']  }
+        rules = {'ingress': [
+                              {'protocol': 'tcp', 'from': 22, 'to':22, 'allowed': ['0.0.0.0/0']  }
                             ], 
-                 'Egress': []
+                 'egress': []
                  }
         """
 
@@ -296,8 +295,8 @@ class AwsClient(object):
             secgroup = resp['SecurityGroups'][0]
 
             #Compare ingress and egress rules
-            match = self._all_rules_match(rules["Ingress"], secgroup["IpPermissions"]) and \
-                        self._all_rules_match(rules["Egress"], secgroup["IpPermissionsEgress"])
+            match = self._all_rules_match(rules["ingress"], secgroup["IpPermissions"]) and \
+                        self._all_rules_match(rules["egress"], secgroup["IpPermissionsEgress"])
             if match:
                 return secgroup['GroupId']
             else:
@@ -314,41 +313,45 @@ class AwsClient(object):
             secgroup_id = resp['GroupId']
 
             #Add the ingress rules
-            if rules["Ingress"]:
-                rules_list = []
-                for rule in rules["Ingress"]:
-                    to_add = {"IpProtocol" : rule["IpProtocol"], 
-                              "FromPort"   : rule["FromPort"], 
-                              "ToPort"     : rule["ToPort"], 
-                              "IpRanges"   : [{"CidrIp": rng} for rng in rule["IpRanges"]]}
-                    rules_list.append(to_add)
-    
-                self.ec2_client.authorize_security_group_ingress(GroupId=secgroup_id, IpPermissions=rules_list)
+            rules_list = []
+            for rule in rules["ingress"]:
+                to_add = {"IpProtocol" : rule["protocol"], 
+                          "FromPort"   : rule["from"], 
+                          "ToPort"     : rule["to"], 
+                          "IpRanges"   : [{"CidrIp": rng} for rng in rule["allowed"]]}
+                rules_list.append(to_add)
+
+            self.ec2_client.authorize_security_group_ingress(GroupId=secgroup_id, IpPermissions=rules_list)
     
             #Add the egress rules
-            if rules["Egress"]:
-                rules_list = []
-                for rule in rules["Egress"]:
-                    to_add = {"IpProtocol" : rule["IpProtocol"], 
-                              "FromPort"   : rule["FromPort"], 
-                              "ToPort"     : rule["ToPort"], 
-                              "IpRanges"   : [{"CidrIp": rng} for rng in rule["IpRanges"]]}
-                    rules_list.append(to_add)
+            rules_list = []
+            for rule in rules["egress"]:
+                to_add = {"IpProtocol" : rule["protocol"], 
+                          "FromPort"   : rule["from"], 
+                          "ToPort"     : rule["to"], 
+                          "IpRanges"   : [{"CidrIp": rng} for rng in rule["allowed"]]}
+                rules_list.append(to_add)
 
-                self.ec2_client.authorize_security_group_egress(GroupId=secgroup_id, IpPermissions=rules_list)
+            self.ec2_client.authorize_security_group_egress(GroupId=secgroup_id, IpPermissions=rules_list)
 
 
-    def get_secgroup_id(self, group_name):
+    def get_secgroup(self, group_name, get_id=False):
         """
-        Returns wordpress secgroup Id, 
-        If does not exist; creates wordpress secgroup and adds rules
-        and returns id
+        Returns secgroup object with matching name. 
+        If does not exist, returns None
+
+        Arguments:-
+            group_name: name of group to fetch
+            get_id: if True only return id, else return the whole group obj
         """
 
         resp = self.ec2_client.describe_security_groups(Filters=[{'Name':'group-name', 'Values': [group_name]}])
         
         if len(resp['SecurityGroups']) > 0: 
-            return resp['SecurityGroups'][0]['GroupId'] 
+            if get_id:
+                return resp['SecurityGroups'][0]['GroupId'] 
+            else:
+                return resp['SecurityGroups'][0]
         else:
             return None
 
@@ -375,10 +378,9 @@ if __name__ == "__main__":
     #sync_aws_key(DEFAULT_KEYNAME, ac)
     #ac.delete_all()
 
-    #secgroup_id = ac.get_secgroup("wordpress1", [])
     #ac.delete_secgroup(secgroup_id)
-    rules = {"Ingress": [{"IpProtocol":"tcp", "FromPort":80, "ToPort":80, "IpRanges":["0.0.0.0/0"]}], "Egress":[]}
-    print ac.create_secgroup("wordpress3", rules)
+    #rules = {"Ingress": [{"IpProtocol":"tcp", "FromPort":80, "ToPort":80, "IpRanges":["0.0.0.0/0"]}], "Egress":[]}
+    print ac.get_secgroup("wordpress1")
 
     #First check if secgroup exists
     #If not check and add it 

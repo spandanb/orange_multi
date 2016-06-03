@@ -64,6 +64,13 @@ resources:
         description: testing
         ingress: 
             - 
+                from: -1 
+                to: -1
+                protocol: icmp
+                allowed:
+                    -
+                        0.0.0.0/0
+            - 
                 from: 22
                 to: 22
                 protocol: tcp
@@ -90,6 +97,13 @@ resources:
                 from: 4789
                 to: 4789
                 protocol: udp
+                allowed:
+                    -
+                        0.0.0.0/0
+            - 
+                from: 6633 
+                to: 6633
+                protocol: tcp
                 allowed:
                     -
                         0.0.0.0/0

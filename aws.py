@@ -392,7 +392,7 @@ if __name__ == "__main__":
 
     #ac.delete_secgroup(secgroup_id)
     #rules = {"Ingress": [{"IpProtocol":"tcp", "FromPort":80, "ToPort":80, "IpRanges":["0.0.0.0/0"]}], "Egress":[]}
-    print ac.get_secgroup("wordpress1")
+    print ac.get_secgroup("wordpress-vino")
 
     #First check if secgroup exists
     #If not check and add it 

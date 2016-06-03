@@ -1,139 +1,46 @@
 ---
-- hosts: master
+- hosts: webserver 
   remote_user: ubuntu
   tasks:
-    - copy: src=~/.ssh/id_rsa dest=/home/ubuntu/.ssh/id_rsa mode=0600
-    - copy: src=~/.ssh/id_rsa.pub dest=/home/ubuntu/.ssh/id_rsa.pub mode=0644
+    - name: copy docker install script 
+      copy: src=docker_setup.sh  dest=/home/ubuntu/docker_setup.sh mode=0777
 
-    - shell: screen -X -S stack quit
-      ignore_errors: yes
+    - name: install docker
+      shell: /home/ubuntu/docker_setup.sh
 
-    - pause: seconds=15
+    - name: copy docker-compose.yaml
+      copy: src=docker-compose-wordpress.yaml dest=/home/ubuntu/docker-compose.yaml
 
-    - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
-
-    - name: run control stack in screen  
-      shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh
-
-- hosts: database 
-  remote_user: ubuntu
-  tasks:
-    - name: update package registry
-      apt: update_cache=yes 
-      become: true  
-
-    - name: install mysql-server
-      apt: name=mysql-server
-      become: true  
-
-    - name: run mysql_install_db
-      command: mysql_install_db
-      become: true  
-
-    - name: copy mysql conf file
-      #This has a changed binding address
-      copy: src=my.cnf dest=/etc/mysql/my.cnf mode=0644 owner=root group=root
-      become: true  
-
-    - name: run mysql
-      service: name=mysql state=started
-
-    - name: create DB user and grant priviledge
-      script: setup_wp_user.sh
-      ignore_errors: true
-
-    - name: restart mysql
-      service: name=mysql state=restarted
+    - name: run docker compose
+      shell: chdir=/home/ubuntu docker-compose up -d 
       become: true
-      ignore_errors: true
 
-    - name: contact master
-      become: true
-      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`" >> /etc/crontab
-
-- hosts: webserver
+- hosts: gateway      
   remote_user: ubuntu
   tasks:
     - name: update package registry
       apt: update_cache=yes 
       become: true  
 
-    - apt: name=openvswitch-switch
+    - apt: name=haproxy
       become: true
+      
+      #NOTE: Should not need to resolve to underlay IP if overlay's work properly
+    - name: insert wordpress in hosts
+      lineinfile: dest=/etc/hosts line="{{ webserver_ip }} wp"
+      become: true 
 
-    - apt: name=openvswitch-common
+    - name: copy haproxy script
+      copy: src=haproxy.cfg dest=/home/ubuntu/haproxy.cfg
+
+    - shell: haproxy -f /home/ubuntu/haproxy.cfg
       become: true
-
-    - apt: name=apache2
-      become: true  
-
-    - name: copy apache2 conf
-      copy: src=dir.conf dest=/etc/apache2/mods-available/dir.conf owner=root group=root mode=0644
-      become: true  
-
-    - apt: name=php5 
-      become: true  
-
-    - apt: name=libapache2-mod-php5 
-      become: true  
-
-    - apt: name=php5-mcrypt 
-      become: true  
-
-    - apt: name=php5-mysql
-      become: true  
-
-    - name: get latest wordpress
-      get_url: url=https://wordpress.org/latest.tar.gz dest=/home/ubuntu/latest.tar.gz
-
-    - name: unarchive wordpress
-      #unarchive: copy=no src=/home/ubuntu/latest.tar.gz dest=/home/ubuntu/
-      shell: tar -zxf /home/ubuntu/latest.tar.gz -C /home/ubuntu
-
-    - name: copy wp-config.php
-      copy: src=wp-config.php dest=/home/ubuntu/wordpress/wp-config.php mode=0644 owner=ubuntu group=ubuntu
-      become: true
-
-    - name: insert DB IP in wordpress config file
-      replace: dest=/home/ubuntu/wordpress/wp-config.php regexp='hostname_here' replace={{ db_ip }}
-      become: true
-
-    - name: mv wordpress folder
-      command: rsync -avP /home/ubuntu/wordpress/ /var/www/html/
-      become: true
-   
-    - name: restart apache2
-      service: name=apache2 state=restarted
-      become: true
-
-    - name: contact master
-      become: true
-      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`/srv/t/80" >> /etc/crontab
 
 - hosts: firewall 
   remote_user: ubuntu
   tasks:
-    - name: contact master
-      become: true
-      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`" >> /etc/crontab
 
     - name: config firewall
       become: true
       script: config_firewall.sh
-
-- hosts: gateway 
-  remote_user: ubuntu
-  tasks:
-    - name: contact master
-      become: true
-      shell: echo "* *    * * * root curl -X POST http://{{ master_ip }}:5000/add/`hostname`/gw" >> /etc/crontab
-
-    - name: insert wordpress IP 
-      lineinfile: dest=/etc/hosts line="{{ webserver_ip }} wp"
-      become: true 
-
-    - name: config gateway 
-      become: true
-      script: config_gw.sh
-    
 

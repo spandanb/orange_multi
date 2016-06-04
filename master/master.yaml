@@ -16,8 +16,13 @@
 
     - pause: seconds=5
 
+    - copy: src=portal.tar.gz dest=/home/ubuntu
+
+    - unarchive: portal.tar.gz
+
     - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
 
     - name: run control stack in screen  
       shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh
+
 

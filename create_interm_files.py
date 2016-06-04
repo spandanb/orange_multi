@@ -14,6 +14,7 @@ def create_hosts_files():
 
     master_ip    = next((node['ip'] for node in nodes if node['role'] == 'master'), None)
     webserver_ip = next((node['ip'] for node in nodes if node['role'] == 'webserver'), None)
+    gateway_ip = next((node['ip'] for node in nodes if node['role'] == 'gateway'), None)
 
     #master hosts file
     with open(master_hosts, 'w') as fileptr:
@@ -41,8 +42,8 @@ def create_hosts_files():
     with open(wordpress_run, 'w') as fileptr:
         fileptr.write("#!/bin/bash\n")
         fileptr.write(
-            'ansible-playbook -i hosts --extra-vars "webserver_ip={}" wordpress.yaml\n'
-            .format(overlay_ip(webserver_ip)))
+            'ansible-playbook -i hosts --extra-vars "webserver_ip={} gateway_ip={}" wordpress.yaml\n'
+            .format(overlay_ip(webserver_ip), overlay_ip(webserver_ip)))
     os.chmod(wordpress_run, 0774)
 
 

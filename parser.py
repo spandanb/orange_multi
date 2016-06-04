@@ -286,6 +286,7 @@ def cleanup():
         nodes = read_yaml(filepath=NODESFILE)
     except IOError:
         print "Nothing to delete...."
+        return 
 
     if not nodes:
         print "Nothing to delete...."

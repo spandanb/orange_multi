@@ -92,19 +92,21 @@ def resolve_config(form, ip=''):
     else:
         print "Namespace {} not found".format(namespace)
 
-def parse_other(resc):
+def parse_declaration(declaration):
     """
-    Parse other resource objects.
+    Parse declarations 
     This includes security group.
+
+    TODO: add support for keyname
     """
-    other = {'type': resc["type"]}
-    if other["type"] == "security-group":
-        other["name"] = resc["name"]
-        other["description"] = resc["description"]
-        other["ingress"] = resc.get("ingress") or []
-        other["egress"] = resc.get("egress") or []
+    decl = {'type': declaration["type"]}
+    if decl["type"] == "security-group":
+        decl["name"] = declaration["name"]
+        decl["description"] = declaration["description"]
+        decl["ingress"] = declaration.get("ingress") or []
+        decl["egress"] = declaration.get("egress") or []
     
-    return other
+    return decl
 
 def parse_node(resc, params):
     """
@@ -157,9 +159,9 @@ def parse_template(template, user_params):
     else:
         params = {}
 
-    #Parse the other resources
-    if "resources" in topology:
-        others =[parse_other(resc) for resc in topology["resources"]]
+    #Parse the declarations 
+    if "declaration" in topology:
+        others =[parse_declaration(dec) for dec in topology["declarations"]]
     else:
         others = []
 

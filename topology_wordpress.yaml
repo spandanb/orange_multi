@@ -57,7 +57,7 @@ nodes:
 edges:
 
 
-resources:
+declarations:
     - 
         name: wordpress-vino
         type: security-group

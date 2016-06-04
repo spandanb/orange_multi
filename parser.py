@@ -160,7 +160,7 @@ def parse_template(template, user_params):
         params = {}
 
     #Parse the declarations 
-    if "declaration" in topology:
+    if "declarations" in topology:
         others =[parse_declaration(dec) for dec in topology["declarations"]]
     else:
         others = []
@@ -207,9 +207,10 @@ def instantiate_others(others):
     """
     aws =  get_aws_client()
     savi = get_savi_client()  
-
+ 
     for other in others:
         if other["type"] == "security-group":
+            print "Creating secgroup {}".format(other["name"])
             rules = {"ingress": other.get("ingress", []), "egress": other.get("egress", [])}
             
             #Creates rules on both AWS and SAVI for current specified region, tenant    

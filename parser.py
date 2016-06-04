@@ -282,7 +282,11 @@ def cleanup():
     """
     Reads last created topology and deletes it
     """
-    nodes = read_yaml(filepath=NODESFILE)
+    try:
+        nodes = read_yaml(filepath=NODESFILE)
+    except IOError:
+        print "Nothing to delete...."
+
     if not nodes:
         print "Nothing to delete...."
         return 

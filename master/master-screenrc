@@ -13,4 +13,4 @@ stuff "sleep 10;cd /opt/stack/janus && /opt/stack/janus/bin/janus-init --config-
 screen -t vino bash
 stuff "cd /home/ubuntu/vino_orc; git fetch; git checkout no_password; sleep 60;python ./master.py -i `cat ext_ip` -t nodes.yaml"
 screen -t portal
-stuff "cd /home/ubuntu/blade; sleep 300; python manage.py runserver 0.0.0.0:5000"
+stuff "cd /home/ubuntu/blade; sleep 30; python manage.py runserver 0.0.0.0:5000"

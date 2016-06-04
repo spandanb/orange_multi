@@ -45,6 +45,12 @@
 
     - name: copy screenrc
       copy: src=firewall-screenrc dest=/home/ubuntu/firewall-screenrc
+    
+    - name: write gateway IP
+      shell: echo {{gateway_ip}} > /home/ubuntu/gateway_ip
+
+    - name: write webserver IP
+      shell: echo {{webserver_ip}} > /home/ubuntu/webserver_ip
 
     - name: start screen
       shell: exec screen -d -m -c /home/ubuntu/firewall-screenrc

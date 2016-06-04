@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 """
 Parses topology and instantiates nodes.
 """

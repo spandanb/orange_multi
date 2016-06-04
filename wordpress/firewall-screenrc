@@ -1,0 +1,10 @@
+sessionname stack
+hardstatus alwayslastline '%{= .} %-Lw%{= .}%> %n%f %t*%{= .}%+Lw%< %-=%{g}(%{d}%H/%l%{g})'
+setenv PROMPT_COMMAND /bin/true
+screen -t bash bash
+screen -t snort bash
+stuff "cd /home/ubuntu/ && ./run_snort.sh"
+screen -t gw_png bash
+stuff "cd /home/ubuntu && `cat gateway_ip`"
+screen -t ws_png bash
+stuff "cd /home/ubuntu && `cat webserver_ip`"

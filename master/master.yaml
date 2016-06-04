@@ -16,11 +16,15 @@
 
     - pause: seconds=5
 
-    - copy: src=portal.tar.gz dest=/home/ubuntu
+    - unarchive: src=portal.tar.gz dest=/home/ubuntu
 
-    - unarchive: portal.tar.gz
+    - copy: src=master-screenrc dest=/home/ubuntu/devstack/stack-screenrc
+    
+    - shell: pip install django isodate
+      become: true
 
-    - copy: src=master-stack-screenrc dest=/home/ubuntu/devstack/stack-screenrc
+    - name: create database 
+      shell: mysql -uroot -pvinopass -e "CREATE DATABASE blade"
 
     - name: run control stack in screen  
       shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh

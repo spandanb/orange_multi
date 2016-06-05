@@ -1,41 +1,41 @@
 ---
-#- hosts: webserver 
-#  remote_user: ubuntu
-#  tasks:
-#    - name: copy docker install script 
-#      copy: src=docker_setup.sh  dest=/home/ubuntu/docker_setup.sh mode=0777
-#
-#    - name: install docker
-#      shell: /home/ubuntu/docker_setup.sh
-#
-#    - name: copy docker-compose.yaml
-#      copy: src=docker-compose-wordpress.yaml dest=/home/ubuntu/docker-compose.yaml
-#
-#    - name: run docker compose
-#      shell: chdir=/home/ubuntu docker-compose up -d 
-#      become: true
-#
-#- hosts: gateway      
-#  remote_user: ubuntu
-#  tasks:
-#    - name: update package registry
-#      apt: update_cache=yes 
-#      become: true  
-#
-#    - apt: name=haproxy
-#      become: true
-#      
-#      #NOTE: Should not need to resolve to underlay IP if overlay's work properly
-#    - name: insert wordpress in hosts
-#      lineinfile: dest=/etc/hosts line="{{ webserver_ip }} wp"
-#      become: true 
-#
-#    - name: copy haproxy script
-#      copy: src=haproxy.cfg dest=/home/ubuntu/haproxy.cfg
-#
-#    - shell: haproxy -f /home/ubuntu/haproxy.cfg
-#      become: true
-#
+- hosts: webserver 
+  remote_user: ubuntu
+  tasks:
+    - name: copy docker install script 
+      copy: src=docker_setup.sh  dest=/home/ubuntu/docker_setup.sh mode=0777
+
+    - name: install docker
+      shell: /home/ubuntu/docker_setup.sh
+
+    - name: copy docker-compose.yaml
+      copy: src=docker-compose-wordpress.yaml dest=/home/ubuntu/docker-compose.yaml
+
+    - name: run docker compose
+      shell: chdir=/home/ubuntu docker-compose up -d 
+      become: true
+
+- hosts: gateway      
+  remote_user: ubuntu
+  tasks:
+    - name: update package registry
+      apt: update_cache=yes 
+      become: true  
+
+    - apt: name=haproxy
+      become: true
+      
+      #NOTE: Should not need to resolve to underlay IP if overlay's work properly
+    - name: insert wordpress in hosts
+      lineinfile: dest=/etc/hosts line="{{ webserver_ip }} wp"
+      become: true 
+
+    - name: copy haproxy script
+      copy: src=haproxy.cfg dest=/home/ubuntu/haproxy.cfg
+
+    - shell: haproxy -f /home/ubuntu/haproxy.cfg
+      become: true
+
 - hosts: firewall 
   remote_user: ubuntu
   tasks:

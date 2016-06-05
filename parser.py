@@ -282,7 +282,7 @@ def write_results(nodes):
 
     with open(NODES_ABBR_FILE, 'w') as fileptr:
         for node in nodes: 
-            fileptr.write("{}: {}".format(node["name"], node["ip"]))
+            fileptr.write("{}: {}\n".format(node["name"], node["ip"]))
 
         
             

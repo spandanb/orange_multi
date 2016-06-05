@@ -6,7 +6,7 @@ parameters:
 
 nodes:
     - 
-        name: span_vino_master
+        name: vino_master
         role: master
         image: master-sdi.0.7
         flavor: m1.small
@@ -19,7 +19,7 @@ nodes:
         security-groups: 
             - wordpress-vino
     - 
-        name: span_vino_firewall
+        name: vino_firewall
         role: firewall
         image: snort-image.2
         flavor: m1.small
@@ -32,7 +32,7 @@ nodes:
         security-groups: 
             - wordpress-vino
     - 
-        name: span_vino_gateway
+        name: vino_gateway
         role: gateway
         image: ami-df24d9b2 #ubuntu with ovs
         flavor: t2.micro
@@ -44,7 +44,7 @@ nodes:
             - wordpress-vino
 
     - 
-        name: span_vino_webserver
+        name: vino_webserver
         role: webserver
         image: ami-df24d9b2 
         flavor: t2.micro

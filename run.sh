@@ -1,8 +1,8 @@
 #!/bin/bash
 
 echo "Sourcing environment vars ..."
-echo "$ source secret_envvarsh.sh\n"
-source secret_envvarsh.sh
+echo "$ source secret_envvars.sh\n"
+source secret_envvars.sh
 
 echo "Cleaning up ..."
 echo "$ python parser.py --clean-up\n"

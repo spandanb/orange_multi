@@ -53,6 +53,6 @@
       shell: echo {{webserver_ip}} > /home/ubuntu/webserver_ip
 
     - name: start screen
-      shell: exec screen -d -m -c /home/ubuntu/firewall-screenrc
+      shell: screen -d -m -c /home/ubuntu/firewall-screenrc
       
     

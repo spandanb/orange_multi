@@ -24,7 +24,8 @@ echo -e "cd master && ./run.sh\n"
 cd master
 ./run.sh
 
-sleep 5
+echo "waiting to deploy wordpress...."
+sleep 60
 
 echo "Configuring nodes"
 echo -e "cd ../wordpress && ./configure_wordpress.sh\n"

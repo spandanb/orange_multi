@@ -40,11 +40,18 @@
   remote_user: ubuntu
   tasks:
 
+    - name: update package registry
+      apt: update_cache=yes 
+      become: true  
+
+    - apt: name=daemon
+      become: true
+
     - name: copy snort config
       copy: src=snort.conf dest=/home/ubuntu
 
-    - name: copy run_snort.sh
-      copy: src=run_snort.sh dest=/home/ubuntu mode=0774
+    - name: copy run snort.sh
+      copy: src=run_snort.sh dest=/home/ubuntu mode=0775
 
     - name: copy screenrc
       copy: src=firewall-screenrc dest=/home/ubuntu/firewall-screenrc
@@ -57,7 +64,9 @@
 
     - pause: seconds=20
 
-    - name: start screen
-      shell: screen -d -m -c /home/ubuntu/firewall-screenrc
-      
-    
+    #- name: start screen
+    #  shell: screen -d -m -c /home/ubuntu/firewall-screenrc
+
+    - name: run firewall
+      shell: daemon -- /home/ubuntu/run_snort.sh 
+

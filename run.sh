@@ -24,7 +24,7 @@ echo "cd master && ./run.sh\n"
 cd master
 ./run.sh
 
-sleep 120
+sleep 5
 
 echo "Configuring nodes"
 echo "cd ../wordpress && ./configure_wordpress.sh\n"

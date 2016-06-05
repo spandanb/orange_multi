@@ -6,33 +6,33 @@ parameters:
 
 nodes:
     - 
-        name: span_vino_master
+        name: user1_vino_master
         role: master
         image: master-sdi.0.7
         flavor: m1.small
         provider: savi 
         type: virtual-machine #[virtual-machine | container | baremetal]
         region: CORE
-        tenant: demo1
+        tenant: workshop-1
         key-name: utils::get_param(savi_key_name)
         assign-floating-ip: true
         security-groups: 
             - wordpress-vino
     - 
-        name: span_vino_firewall
+        name: user1_vino_firewall
         role: firewall
         image: snort-image.2
         flavor: m1.small
         provider: savi
         type: virtual-machine
         region: CORE
-        tenant: demo2
+        tenant: workshop-1
         key-name: utils::get_param(savi_key_name) 
         assign-floating-ip: true
         security-groups: 
             - wordpress-vino
     - 
-        name: span_vino_gateway
+        name: user1_vino_gateway
         role: gateway
         image: ami-df24d9b2 #ubuntu with ovs
         flavor: t2.micro
@@ -44,7 +44,7 @@ nodes:
             - wordpress-vino
 
     - 
-        name: span_vino_webserver
+        name: user1_vino_webserver
         role: webserver
         image: ami-df24d9b2 
         flavor: t2.micro
@@ -84,14 +84,6 @@ declarations:
                 allowed:
                     -
                         0.0.0.0/0
-
-            - 
-                from: 8080
-                to: 8080
-                protocol: tcp
-                allowed:
-                    -
-                        192.168.0.0/16
 
             - 
                 from: 4789

@@ -26,6 +26,7 @@
 
     - name: create database 
       shell: mysql -uroot -pvinopass -e "CREATE DATABASE blade"
+      ignore_errors: yes
 
     - name: run control stack in screen  
       shell: chdir=/home/ubuntu/devstack ./rejoin-stack.sh

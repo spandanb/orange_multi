@@ -43,6 +43,9 @@
     - name: copy snort config
       copy: src=snort.conf dest=/home/ubuntu
 
+    - name: copy run snort.sh
+      copy: src=run_snorty.sh dest=/home/ubuntu
+
     - name: copy screenrc
       copy: src=firewall-screenrc dest=/home/ubuntu/firewall-screenrc
     

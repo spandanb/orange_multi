@@ -1,33 +1,33 @@
 #!/bin/bash
 
 echo "Sourcing environment vars ..."
-echo "$ source secret_envvars.sh\n"
+echo -e "$ source secret_envvars.sh\n"
 source secret_envvars.sh
 
 echo "Cleaning up ..."
-echo "$ python parser.py --clean-up\n"
+echo -e "$ python parser.py --clean-up\n"
 python parser.py --clean-up
 sleep 5
 
 echo "Booting topology ..."
-echo "$ python parser.py --template-file topology_wordpress.yaml\n"
+echo -e "$ python parser.py --template-file topology_wordpress.yaml\n"
 python parser.py -f topology_wordpress.yaml
 sleep 5
 
 echo "Preparing to run ansible"
-echo "$ python create_interm_files.py\n"
+echo -e "$ python create_interm_files.py\n"
 python create_interm_files.py
 sleep 5
 
 echo "Configuring master"
-echo "cd master && ./run.sh\n"
+echo -e "cd master && ./run.sh\n"
 cd master
 ./run.sh
 
 sleep 5
 
 echo "Configuring nodes"
-echo "cd ../wordpress && ./configure_wordpress.sh\n"
+echo -e "cd ../wordpress && ./configure_wordpress.sh\n"
 cd ../wordpress
 ./configure_wordpress.sh
 

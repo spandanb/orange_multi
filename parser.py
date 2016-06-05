@@ -23,6 +23,7 @@ from utils import read_yaml, write_yaml, create_and_raise
 ################    CONSTS    ################
 ##############################################
 NODESFILE="./nodes.yaml"
+NODES_ABBR_FILE="./nodes.txt"
 
 def form_components(form):
     """
@@ -278,6 +279,12 @@ def write_results(nodes):
     Writes the results to file
     """
     write_yaml(nodes, filepath=NODESFILE) 
+
+    with open(NODES_ABBR_FILE, 'w') as fileptr:
+        for node in nodes: 
+            fileptr.write("{}: {}".format(node["name"], node["ip"]))
+
+        
             
 def cleanup():
     """
@@ -318,6 +325,9 @@ def cleanup():
     #Nuke the file
     with open(NODESFILE, 'w') as fileptr:
         fileptr.write('')
+    with open(NODES_ABBR_FILE, 'w') as fileptr:
+        fileptr.write('')
+
 
 
 def parse_args():

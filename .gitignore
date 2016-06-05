@@ -20,4 +20,5 @@ trash/*
 
 secret_envvars.sh
 nodes.yaml
+nodes.txt
 TODO

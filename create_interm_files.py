@@ -43,7 +43,7 @@ def create_hosts_files():
         fileptr.write("#!/bin/bash\n")
         fileptr.write(
             'ansible-playbook -i hosts --extra-vars "webserver_ip={} gateway_ip={}" wordpress.yaml\n'
-            .format(overlay_ip(webserver_ip), overlay_ip(webserver_ip)))
+            .format(overlay_ip(webserver_ip), overlay_ip(gateway_ip)))
     os.chmod(wordpress_run, 0774)
 
 

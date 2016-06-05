@@ -22,6 +22,7 @@
     
     - shell: pip install django isodate
       become: true
+      ignore_errors: true
 
     - name: create database 
       shell: mysql -uroot -pvinopass -e "CREATE DATABASE blade"

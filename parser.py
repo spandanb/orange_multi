@@ -207,7 +207,7 @@ def instantiate_others(others):
     """
     aws =  get_aws_client()
     savi = get_savi_client()  
- 
+
     for other in others:
         if other["type"] == "security-group":
             print "Creating secgroup {}".format(other["name"])
@@ -295,7 +295,7 @@ def cleanup():
 
     aws =  get_aws_client()
     savi = get_savi_client()  
-   
+    
     savi_nodes = [node for node in nodes if node["provider"] == "savi"]
     aws_nodes = [node["id"] for node in nodes if node["provider"] == "aws"]
 

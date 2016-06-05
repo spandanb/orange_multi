@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#ssh-keygen -f file.rsa -t rsa -N ''
-
 echo "Sourcing environment vars ..."
 echo "$ source secret_envvarsh.sh\n"
 source secret_envvarsh.sh

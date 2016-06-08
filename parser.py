@@ -4,7 +4,7 @@ Parses topology and instantiates nodes.
 """
 
 from clients import get_aws_client, get_savi_client
-from aws import AwsClient, get_server_ips, ubuntu
+from aws import AwsClient, ubuntu
 import sys, os, pdb, argparse
 import base64
 import cPickle as pickle
@@ -262,7 +262,7 @@ def instantiate_nodes(nodes):
             else:
                 node["ip"] = node_ip
         else: #aws
-            node["ip"] = get_server_ips(aws, [node["id"]])[0]
+            node["ip"] = aws.get_server_ips([node["id"]])[0]
             #Perform any special on_boot ops
             if node["on_boot"]:
                 for item in node["on_boot"]:

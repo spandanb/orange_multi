@@ -22,39 +22,6 @@ from socket import error as socket_error
 from utils import create_and_raise
 import sys
 
-def get_server_ips(aws_client, instance_ids, username="ubuntu"):
-    """
-    blocking method that waits until all server are ready and 
-    are SSHable 
-    """
-    sleep = SleepFSM()
-    sleep.init(max_tries=7)
-    
-    server_ips = []
-
-    running = aws_client.list_running_servers(instance_ids)
-    while len(running) != len(instance_ids):
-        running = aws_client.list_running_servers(instance_ids)
-        sleep()
-       
-    sshClient = paramiko.SSHClient()
-    sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    while len(running):
-        #Need nested for loop since AWS's response is
-        #nested
-        group = running.pop()["Instances"]
-        while len(group):
-            node = group.pop()
-            while True:
-                try:
-                    print "Trying ssh {}@{}".format(username, node['PublicIpAddress']) #PublicDnsName
-                    sshClient.connect(node['PublicIpAddress'], username=username)
-                    server_ips.append(node['PublicIpAddress'])
-                    break
-                except socket_error:
-                    print "SSH failed...."
-                sleep()
-    return server_ips
 
 #Image id's for same image vary by location
 #Ubuntu 14.04
@@ -373,33 +340,65 @@ class AwsClient(object):
         """
         self.ec2_client.delete_security_group(GroupId=secgroup_id)
         
+    def get_server_ips(self, instance_ids, username="ubuntu"):
+        """
+        blocking method that waits until all server are ready and 
+        are SSHable 
+        """
+        sleep = SleepFSM()
+        sleep.init(max_tries=7)
+        
+        server_ips = []
+    
+        running = self.list_running_servers(instance_ids)
+        while len(running) != len(instance_ids):
+            running = self.list_running_servers(instance_ids)
+            sleep()
+           
+        sshClient = paramiko.SSHClient()
+        sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        while len(running):
+            #Need nested for loop since AWS's response is
+            #nested
+            group = running.pop()["Instances"]
+            while len(group):
+                node = group.pop()
+                while True:
+                    try:
+                        print "Trying ssh {}@{}".format(username, node['PublicIpAddress']) #PublicDnsName
+                        sshClient.connect(node['PublicIpAddress'], username=username)
+                        server_ips.append(node['PublicIpAddress'])
+                        break
+                    except socket_error:
+                        print "SSH failed...."
+                    sleep()
+        return server_ips
 
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"
 
-    ac = AwsClient()
+    aws = AwsClient()
     #region is set through env var, but explicitly set it again
     region = 'us-east-1'
-    ac.set_region(region)
+    aws.set_region(region)
     
     #List the servers
     #print "Listing servers...."
-    #print ac.list_servers()
+    #print aws.list_servers()
 
     #First, let's handle the keys
-    #sync_aws_key(DEFAULT_KEYNAME, ac)
-    #ac.delete_all()
+    #sync_aws_key(DEFAULT_KEYNAME, aws)
+    #aws.delete_all()
 
-    #ac.delete_secgroup(secgroup_id)
-    #rules = {"Ingress": [{"IpProtocol":"tcp", "FromPort":80, "ToPort":80, "IpRanges":["0.0.0.0/0"]}], "Egress":[]}
-    print ac.get_secgroup("wordpress-vino")
+    #aws.delete_secgroup(secgroup_id)
+    print aws.get_secgroup("wordpress-vino")
 
     #First check if secgroup exists
     #If not check and add it 
     #Then boot servers
     
-    #instance_ids = ac.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
+    #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
     #print "getting server IPs..."
-    #print get_server_ips(ac, instance_ids)
+    #print aws.get_server_ips(instance_ids)
 
-    #print ac.list_security_groups()
+    #print aws.list_security_groups()

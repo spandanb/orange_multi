@@ -3,14 +3,12 @@
 Parses topology and instantiates nodes.
 """
 
-from clients import get_aws_client, get_savi_client
-from aws import AwsClient, ubuntu
+from aws import get_aws_client, ubuntu
+from vino.servers import get_savi_client
 import sys, os, pdb, argparse
 import base64
-import cPickle as pickle
-import pprint, json
-from keys import sync_savi_key, sync_aws_key
-from utils import read_yaml, write_yaml, create_and_raise
+from utils.io_utils import read_yaml, write_yaml 
+from utils.utils import create_and_raise
 
 ##############################################
 ################     TODO     ################
@@ -229,6 +227,7 @@ def instantiate_nodes(nodes):
     aws =  get_aws_client()
     savi = get_savi_client()  
     
+    #Only need to sync the key's once
     savi_key_synced = False
     aws_key_synced = False
 
@@ -236,7 +235,7 @@ def instantiate_nodes(nodes):
     for node in nodes:
         if node["provider"] == "savi":
             if not savi_key_synced:
-                sync_savi_key(node["key_name"], savi)
+                savi.sync_savi_key(node["key_name"])
                 savi_key_synced = True
             
             print "Booting {} in SAVI".format(node["name"])
@@ -244,7 +243,7 @@ def instantiate_nodes(nodes):
 
         else: #aws
             if not aws_key_synced:
-                sync_aws_key(node["key_name"], aws)
+                aws.sync_aws_key(node["key_name"])
                 aws_key_synced = True
 
             print "Booting {} in AWS".format(node["name"])

@@ -13,14 +13,11 @@ Make sure the security group allows SSH connectivity
 """
 
 import boto3
-import pdb
-import os
-from keys import sync_aws_key 
-from vino.utils import SleepFSM
+import os, sys, pdb
+from utils import keys 
+from utils.utils import SleepFSM, create_and_raise
 import paramiko
 from socket import error as socket_error
-from utils import create_and_raise
-import sys
 
 
 #Image id's for same image vary by location
@@ -31,6 +28,18 @@ ubuntu = {
     'us-west-2':'ami-9abea4fb', #Oregon
 }
 
+def get_aws_client():
+    """
+    Returns clients for AWS
+    """
+    
+    if os.environ.get('AWS_DEFAULT_REGION'):
+        return AwsClient(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], 
+                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+                        region=os.environ['AWS_DEFAULT_REGION'])
+    else:
+        return AwsClient(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], 
+                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
 
 class AwsClient(object):
     """
@@ -342,8 +351,9 @@ class AwsClient(object):
         
     def get_server_ips(self, instance_ids, username="ubuntu"):
         """
-        blocking method that waits until all server are ready and 
-        are SSHable 
+        Returns the IP addresses of `instance_ids`.
+        Blocking method that waits until all server are ready and 
+        SSHable. 
         """
         sleep = SleepFSM()
         sleep.init(max_tries=7)
@@ -373,6 +383,40 @@ class AwsClient(object):
                         print "SSH failed...."
                     sleep()
         return server_ips
+
+    def sync_aws_key(self, keyname, clobber=False):
+        """
+        Synchronizes local RSA key with AWS with `keyname`.
+        First, Checks whether local RSA priv key exists.
+        If it does not exist locally, a new key is created. 
+        If it does, but does not match with an
+        AWS key, overrides AWS key info.
+    
+        Arguments:-
+            keyname- the name of the key 
+            aws_client- the AWS Client object
+            clobber- delete existing key on AWS if name collision
+        """
+        #Check if local SSH key exists; if not create it
+        keys.check_and_create_privkey()
+        #compare local key with remote key
+        if self.check_keyname(keyname):
+            #get public key fingerprint
+            fingerprint = keys.get_pubkey_fingerprint("aws")
+            if not self.check_keyfingerprint(keyname, fingerprint):
+                if clobber:
+                    #remove key with matching name
+                    self.remove_keypair(keyname)
+                else:
+                    #raise exception
+                    exc_msg = "local SSH key does not match key '{}' on AWS server".format(keyname)
+                    create_and_raise("SshKeyMismatchException", exc_msg)
+        
+                #Create key that corresponds with local key
+                self.create_keypair(keyname, get_pubkey())
+        else:
+            self.create_keypair(keyname, get_pubkey())
+    
 
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"

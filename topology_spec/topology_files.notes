@@ -1,3 +1,0 @@
-String values can have either - or _
-For parameters '_' is perfered since parameters can also be set through env vars, and 
-    and env vars can not contain '-'

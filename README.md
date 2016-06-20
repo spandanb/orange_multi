@@ -27,7 +27,7 @@ To cleanup:
 
 Dependencies
 ============
-boto3, i.e. pip install boto3
+boto3, 
 ansible
 requests
 

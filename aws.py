@@ -367,6 +367,7 @@ class AwsClient(object):
            
         sshClient = paramiko.SSHClient()
         sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        sleep.init(max_tries=7) #re-initialize sleep FSM
         while len(running):
             #Need nested for loop since AWS's response is
             #nested

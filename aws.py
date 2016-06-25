@@ -16,6 +16,7 @@ import boto3
 import os, sys, pdb
 from utils import keys 
 from utils.utils import SleepFSM, create_and_raise
+from utils.io_utils import yaml_to_envvars
 import paramiko
 from socket import error as socket_error
 
@@ -418,14 +419,90 @@ class AwsClient(object):
         else:
             self.create_keypair(keyname, get_pubkey())
     
+    def autoscale(self, instance_id):
+        """
+        Autoscales a group
+        TODO: create, or pass an instance
+        """
+        if not hasattr(self, "as_client"):
+            self.as_client = self._get_client('autoscaling')
+
+        if not hasattr(self, "cw_client"):
+            self.cw_client = self._get_client('cloudwatch')
+
+        lconf = 'lc-1'
+        asgroup  = 'asg-1'
+        polup = 'policy-up' #policy
+        poldn = 'policy-down'
+
+
+        avail_zones = self.ec2_client.describe_availability_zones()['AvailabilityZones']
+        avail_zones = [zone['ZoneName'] for zone in avail_zones]
+
+        #creates a launch config based on instance
+        self.as_client.create_launch_configuration(
+            LaunchConfigurationName=lconf, 
+            InstanceId=instance_id)
+
+        #create an autoscaling group
+        self.as_client.create_auto_scaling_group(
+            AutoScalingGroupName=asgroup,
+            LaunchConfigurationName=lconf, #can use InstanceId instead
+            MinSize=1,
+            MaxSize=3, 
+            AvailabilityZones=avail_zones)
+            #VPCZoneIdentifier=self.get_vpc_id())
+
+        #apply as-up policy on group
+        self.as_client.put_policy(
+            AutoScalingGroupName=asgroup,
+            PolicyName = polup,
+            AdjustmentType = "ChangeInCapacity",
+            ScalingAdjustment = 1) #This is a scale up policy, for scale-down make this -1
+
+        #apply as-up policy on group
+        self.as_client.put_policy(
+            AutoScalingGroupName=asgroup,
+            PolicyName = poldn,
+            AdjustmentType = "ChangeInCapacity",
+            ScalingAdjustment = -1) 
+
+
+        
+    def autoscale_cleanup(self):
+        
+        if not hasattr(self, "as_client"):
+            self.as_client = self._get_client('autoscaling')
+
+        if not hasattr(self, "cw_client"):
+            self.cw_client = self._get_client('cloudwatch')
+
+        lconf = 'lc-1'
+        asgroup  = 'asg-1'
+        polup = 'policy-up' #policy
+        poldn = 'policy-down'
+        
+        try:
+            #delete as group
+            self.as_client.delete_auto_scaling_group(AutoScalingGroupName=asgroup)
+        except:
+            pass
+
+        try:
+            #delete launch config
+            self.as_client.delete_launch_configuration(
+                LaunchConfigurationName=lconf)
+        except:
+            pass
+
 
 if __name__ == "__main__":
     DEFAULT_KEYNAME="spandan_key"
 
+    yaml_to_envvars("../parser/config.yaml")
+    region = os.environ["AWS_DEFAULT_REGION"]
+
     aws = AwsClient()
-    #region is set through env var, but explicitly set it again
-    region = 'us-east-1'
-    aws.set_region(region)
     
     #List the servers
     #print "Listing servers...."
@@ -433,17 +510,21 @@ if __name__ == "__main__":
 
     #First, let's handle the keys
     #sync_aws_key(DEFAULT_KEYNAME, aws)
-    #aws.delete_all()
+    aws.delete_all()
 
     #aws.delete_secgroup(secgroup_id)
-    print aws.get_secgroup("wordpress-vino")
+    #print aws.get_secgroup("wordpress-vino")
 
     #First check if secgroup exists
     #If not check and add it 
     #Then boot servers
     
-    #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
-    #print "getting server IPs..."
-    #print aws.get_server_ips(instance_ids)
+    if 1:
+        #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
+        instance_ids = aws.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
+        print "getting server IPs..."
+        print aws.get_server_ips(instance_ids)
 
-    #print aws.list_security_groups()
+        aws.autoscale(instance_ids[0])
+    else:
+        aws.autoscale_cleanup()

@@ -387,6 +387,7 @@ class AwsClient(object):
                         print "Trying ssh {}@{}".format(username, node['PublicIpAddress']) #PublicDnsName
                         sshClient.connect(node['PublicIpAddress'], username=username)
                         server_ips.append(node['PublicIpAddress'])
+                        print "Successfully ssh'ed {}@{}".format(username, node['PublicIpAddress']) 
                         break
                     except socket_error:
                         print "SSH failed...."

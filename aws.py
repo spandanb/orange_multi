@@ -19,6 +19,7 @@ from utils.utils import SleepFSM, create_and_raise
 from utils.io_utils import yaml_to_envvars
 import paramiko
 from socket import error as socket_error
+import argparse
 
 
 #Image id's for same image vary by location
@@ -50,6 +51,7 @@ class AwsClient(object):
         self.aws_access_key_id     = aws_access_key_id or os.environ["AWS_ACCESS_KEY_ID"]
         self.aws_secret_access_key = aws_secret_access_key or os.environ["AWS_SECRET_ACCESS_KEY"]
         self.set_region(region or os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
+        self.service_clients = {}
         
         self.ec2_client = self._get_client('ec2')
 
@@ -64,12 +66,17 @@ class AwsClient(object):
         #for setting credential vars
         #See http://russell.ballestrini.net/setting-region-programmatically-in-boto3/
         #for setting region
-        
-        return boto3.client(service, 
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            region_name=self.aws_region
-        )
+        if service not in self.service_clients:
+            client = boto3.client(service, 
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.aws_region
+            )
+            self.service_clients[service] = client
+        else:
+            client = self.service_clients[service]
+
+        return client
 
     def set_region(self, region):
         """
@@ -424,20 +431,16 @@ class AwsClient(object):
         Autoscales a group
         TODO: create, or pass an instance
         """
-        if not hasattr(self, "as_client"):
-            self.as_client = self._get_client('autoscaling')
-
-        if not hasattr(self, "cw_client"):
-            self.cw_client = self._get_client('cloudwatch')
+        self.as_client = self._get_client('autoscaling')
 
         lconf = 'lc-1'
         asgroup  = 'asg-1'
         polup = 'policy-up' #policy
         poldn = 'policy-down'
 
-
         avail_zones = self.ec2_client.describe_availability_zones()['AvailabilityZones']
         avail_zones = [zone['ZoneName'] for zone in avail_zones]
+        subnets = self.ec2_client.describe_subnets()
 
         #creates a launch config based on instance
         self.as_client.create_launch_configuration(
@@ -450,81 +453,105 @@ class AwsClient(object):
             LaunchConfigurationName=lconf, #can use InstanceId instead
             MinSize=1,
             MaxSize=3, 
-            AvailabilityZones=avail_zones)
-            #VPCZoneIdentifier=self.get_vpc_id())
+            AvailabilityZones=["us-east-1a"],
+            VPCZoneIdentifier="subnet-01dffe2a")
 
         #apply as-up policy on group
-        self.as_client.put_policy(
+        self.as_client.put_scaling_policy(
             AutoScalingGroupName=asgroup,
             PolicyName = polup,
             AdjustmentType = "ChangeInCapacity",
             ScalingAdjustment = 1) #This is a scale up policy, for scale-down make this -1
 
         #apply as-up policy on group
-        self.as_client.put_policy(
+        self.as_client.put_scaling_policy(
             AutoScalingGroupName=asgroup,
             PolicyName = poldn,
             AdjustmentType = "ChangeInCapacity",
             ScalingAdjustment = -1) 
 
-
+    def autoscale_cleanup(self, instance_id):
         
-    def autoscale_cleanup(self):
-        
-        if not hasattr(self, "as_client"):
-            self.as_client = self._get_client('autoscaling')
-
-        if not hasattr(self, "cw_client"):
-            self.cw_client = self._get_client('cloudwatch')
+        self.as_client = self._get_client('autoscaling')
 
         lconf = 'lc-1'
         asgroup  = 'asg-1'
         polup = 'policy-up' #policy
         poldn = 'policy-down'
+
+        self.as_client.detach_instances(InstanceIds=[instance_id],
+            ShouldDecrementDesiredCapacity=False,
+            AutoScalingGroupName=asgroup)
         
-        try:
-            #delete as group
-            self.as_client.delete_auto_scaling_group(AutoScalingGroupName=asgroup)
-        except:
-            pass
+        #delete as group
+        self.as_client.delete_auto_scaling_group(AutoScalingGroupName=asgroup)
 
-        try:
-            #delete launch config
-            self.as_client.delete_launch_configuration(
-                LaunchConfigurationName=lconf)
-        except:
-            pass
+        #delete launch config
+        self.as_client.delete_launch_configuration(
+            LaunchConfigurationName=lconf)
 
+    def create_alarm(self):
+        #http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html
+        self.cw_client = self._get_client('cloudwatch')
+        self.cw_client.put_metric_alarm(
+            AlarmName='cpu-util',
+            MetricName='',
+            Namespace='AWS/EC2',
+            Statistic='Average', 
+            Period='10',
+            EvaluationPeriod='3',
+            Threshold='40.0',
+            ComparisonOperator='GreaterThanOrEqualToThreshold')
 
-if __name__ == "__main__":
-    DEFAULT_KEYNAME="spandan_key"
+def parse_args():
+    """
+    Parse arguments and call actuator.
+    """
+    parser = argparse.ArgumentParser(description='AWS command line interface')
+    
+    #parser.add_argument('-f', '--template-file', nargs=1, help="specify the template to use")
+    parser.add_argument('-l', '--list', action="store_true", help="List all instances")
+    parser.add_argument('-n', '--nuke', action="store_true", help="Deletes all instances")
+    parser.add_argument('-k', '--sync-key', action="store_true", help="Sync key")
+    parser.add_argument('-m', '--misc', action="store_true", help="Stuff any other experimental logic here")
+    
+    args = parser.parse_args()
 
     yaml_to_envvars("../parser/config.yaml")
     region = os.environ["AWS_DEFAULT_REGION"]
-
     aws = AwsClient()
+
+    if args.sync_key:
+        #First, let's handle the keys
+        #TODO: parametrize the keyname
+        DEFAULT_KEYNAME="spandan_key"
+        sync_aws_key(DEFAULT_KEYNAME, aws)
+
+    if args.list:  
+        print "Listing servers...."
+        print aws.list_servers()
+
+    elif args.nuke:
+        aws.delete_all()
+
+    elif args.misc:
+        inp = int(sys.argv[1])
+        inst_id = "i-0731eac777ffe919b"
     
-    #List the servers
-    #print "Listing servers...."
-    #print aws.list_servers()
+        if inp:
+            #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
+            #instance_ids = aws.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
+            #print "getting server IPs..."
+            #print aws.get_server_ips(instance_ids)
+            aws.autoscale(inst_id)
+        else:
+            aws.autoscale_cleanup(inst_id)
 
-    #First, let's handle the keys
-    #sync_aws_key(DEFAULT_KEYNAME, aws)
-    aws.delete_all()
-
-    #aws.delete_secgroup(secgroup_id)
-    #print aws.get_secgroup("wordpress-vino")
-
-    #First check if secgroup exists
-    #If not check and add it 
-    #Then boot servers
-    
-    if 1:
-        #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
-        instance_ids = aws.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
-        print "getting server IPs..."
-        print aws.get_server_ips(instance_ids)
-
-        aws.autoscale(instance_ids[0])
     else:
-        aws.autoscale_cleanup()
+        parser.print_help()
+        
+if __name__ == "__main__":
+    parse_args()
+
+    
+

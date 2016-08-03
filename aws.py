@@ -197,7 +197,20 @@ class AwsClient(object):
                 ]
             )
         return resp['Reservations']
-    
+   
+    def get_addr_map(self):
+        """
+        Returns a map of local IP -> public IP 
+        """
+        resp = self.list_running_servers()
+        addrs = []
+        for reservation in resp:
+            for inst in reservation['Instances']:
+                #Dns names have ip-<ip addr /./-/>.ec2.local 
+                addrs.append((inst['PrivateDnsName'][3:-13], inst['PublicIpAddress']))
+
+        return addrs
+
     def delete_servers(self, server_ids):
         """
         Deletes the servers referenced by
@@ -536,17 +549,22 @@ def parse_args():
         aws.delete_all()
 
     elif args.misc:
-        inp = int(sys.argv[1])
-        inst_id = "i-0731eac777ffe919b"
-    
-        if inp:
-            #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
-            #instance_ids = aws.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
-            #print "getting server IPs..."
-            #print aws.get_server_ips(instance_ids)
-            aws.autoscale(inst_id)
-        else:
-            aws.autoscale_cleanup(inst_id)
+        print aws.get_addr_map()
+        
+        ##############################################
+        #######  AUTO SCALING STUFF 
+        #############################################
+#        inp = int(sys.argv[1])
+#        inst_id = "i-0731eac777ffe919b"
+#    
+#        if inp:
+#            #instance_ids = aws.create_server("ami-df24d9b2", "t2.micro", keyname=DEFAULT_KEYNAME)
+#            #instance_ids = aws.create_server(ubuntu[region], "t2.micro", keyname=DEFAULT_KEYNAME)
+#            #print "getting server IPs..."
+#            #print aws.get_server_ips(instance_ids)
+#            aws.autoscale(inst_id)
+#        else:
+#            aws.autoscale_cleanup(inst_id)
 
     else:
         parser.print_help()
